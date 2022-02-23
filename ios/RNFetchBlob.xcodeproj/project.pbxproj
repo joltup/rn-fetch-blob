@@ -15,6 +15,7 @@
 		A166D1AA1CE0647A00273590 /* RNFetchBlob.h in Sources */ = {isa = PBXBuildFile; fileRef = A15C30111CD25C330074CB35 /* RNFetchBlob.h */; };
 		A19B48251D98102400E6868A /* RNFetchBlobProgress.m in Sources */ = {isa = PBXBuildFile; fileRef = A19B48241D98102400E6868A /* RNFetchBlobProgress.m */; };
 		A1AAE2991D300E4D0051D11C /* RNFetchBlobReqBuilder.m in Sources */ = {isa = PBXBuildFile; fileRef = A1AAE2981D300E4D0051D11C /* RNFetchBlobReqBuilder.m */; };
+		CF9461F2239182290051D1B8 /* DDFileReader.m in Sources */ = {isa = PBXBuildFile; fileRef = CF9461F1239182290051D1B8 /* DDFileReader.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -46,6 +47,8 @@
 		A1AAE2971D300E3E0051D11C /* RNFetchBlobReqBuilder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RNFetchBlobReqBuilder.h; sourceTree = "<group>"; };
 		A1AAE2981D300E4D0051D11C /* RNFetchBlobReqBuilder.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RNFetchBlobReqBuilder.m; sourceTree = "<group>"; };
 		A1F950181D7E9134002A95A6 /* IOS7Polyfill.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IOS7Polyfill.h; sourceTree = "<group>"; };
+		CF9461F0239181DE0051D1B8 /* DDFileReader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DDFileReader.h; sourceTree = "<group>"; };
+		CF9461F1239182290051D1B8 /* DDFileReader.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DDFileReader.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -69,6 +72,8 @@
 		A15C30051CD25C330074CB35 = {
 			isa = PBXGroup;
 			children = (
+				CF9461F1239182290051D1B8 /* DDFileReader.m */,
+				CF9461F0239181DE0051D1B8 /* DDFileReader.h */,
 				A19B48241D98102400E6868A /* RNFetchBlobProgress.m */,
 				A19B48231D98100800E6868A /* RNFetchBlobProgress.h */,
 				A1F950181D7E9134002A95A6 /* IOS7Polyfill.h */,
@@ -136,6 +141,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 			);
 			mainGroup = A15C30051CD25C330074CB35;
@@ -160,6 +166,7 @@
 				A158F4301D0539DB006FFD38 /* RNFetchBlobNetwork.m in Sources */,
 				A19B48251D98102400E6868A /* RNFetchBlobProgress.m in Sources */,
 				A1AAE2991D300E4D0051D11C /* RNFetchBlobReqBuilder.m in Sources */,
+				CF9461F2239182290051D1B8 /* DDFileReader.m in Sources */,
 				A15C30141CD25C330074CB35 /* RNFetchBlob.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -253,6 +260,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_OBJC_ARC = YES;
 				GCC_INPUT_FILETYPE = automatic;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
@@ -274,6 +282,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_OBJC_ARC = YES;
 				GCC_INPUT_FILETYPE = automatic;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",

@@ -69,45 +69,32 @@ class RNFetchBlobFS {
                 }
             }
 
+            FileOutputStream fout = new FileOutputStream(f, append);
             // write data from a file
             if(encoding.equalsIgnoreCase(RNFetchBlobConst.DATA_ENCODE_URI)) {
                 String normalizedData = normalizePath(data);
                 File src = new File(normalizedData);
                 if (!src.exists()) {
                     promise.reject("ENOENT", "No such file '" + path + "' " + "('" + normalizedData + "')");
+                    fout.close();
                     return;
                 }
+                FileInputStream fin = new FileInputStream(src);
                 byte[] buffer = new byte [10240];
                 int read;
                 written = 0;
-                FileInputStream fin = null;
-                FileOutputStream fout = null;
-                try {
-                    fin = new FileInputStream(src);
-                    fout = new FileOutputStream(f, append);
-                    while ((read = fin.read(buffer)) > 0) {
-                        fout.write(buffer, 0, read);
-                        written += read;
-                    }
-                } finally {
-                    if (fin != null) {
-                        fin.close();
-                    }
-                    if (fout != null) {
-                        fout.close();
-                    }
+                while((read = fin.read(buffer)) > 0) {
+                    fout.write(buffer, 0, read);
+                    written += read;
                 }
+                fin.close();
             }
             else {
                 byte[] bytes = stringToBytes(data, encoding);
-                FileOutputStream fout = new FileOutputStream(f, append);
-                try {
-                    fout.write(bytes);
-                    written = bytes.length;
-                } finally {
-                    fout.close();
-                }
+                fout.write(bytes);
+                written = bytes.length;
             }
+            fout.close();
             promise.resolve(written);
         } catch (FileNotFoundException e) {
             // According to https://docs.oracle.com/javase/7/docs/api/java/io/FileOutputStream.html
@@ -142,15 +129,12 @@ class RNFetchBlobFS {
             }
 
             FileOutputStream os = new FileOutputStream(f, append);
-            try {
-                byte[] bytes = new byte[data.size()];
-                for (int i = 0; i < data.size(); i++) {
-                    bytes[i] = (byte) data.getInt(i);
-                }
-                os.write(bytes);
-            } finally {
-                os.close();
+            byte[] bytes = new byte[data.size()];
+            for(int i=0;i<data.size();i++) {
+                bytes[i] = (byte) data.getInt(i);
             }
+            os.write(bytes);
+            os.close();
             promise.resolve(data.size());
         } catch (FileNotFoundException e) {
             // According to https://docs.oracle.com/javase/7/docs/api/java/io/FileOutputStream.html
@@ -320,8 +304,9 @@ class RNFetchBlobFS {
 
         try {
             int chunkSize = encoding.equalsIgnoreCase("base64") ? 4095 : 4096;
-            if(bufferSize > 0)
+            if(bufferSize > 0 || bufferSize == -1)
                 chunkSize = bufferSize;
+
 
             InputStream fs;
 
@@ -336,20 +321,37 @@ class RNFetchBlobFS {
                 fs = new FileInputStream(new File(path));
             }
 
-            byte[] buffer = new byte[chunkSize];
+
             int cursor = 0;
             boolean error = false;
 
             if (encoding.equalsIgnoreCase("utf8")) {
                 CharsetEncoder encoder = Charset.forName("UTF-8").newEncoder();
-                while ((cursor = fs.read(buffer)) != -1) {
-                    encoder.encode(ByteBuffer.wrap(buffer).asCharBuffer());
-                    String chunk = new String(buffer, 0, cursor);
-                    emitStreamEvent(streamId, "data", chunk);
-                    if(tick > 0)
-                        SystemClock.sleep(tick);
+                if ( chunkSize > 0) {
+                    byte[] buffer = new byte[chunkSize];
+                    while ((cursor = fs.read(buffer)) != -1) {
+                        encoder.encode(ByteBuffer.wrap(buffer).asCharBuffer());
+                        String chunk = new String(buffer, 0, cursor);
+                        emitStreamEvent(streamId, "data", chunk);
+                        if (tick > 0)
+                            SystemClock.sleep(tick);
+                    }
+                    buffer = null;
+
+                } else {
+                    // if chunk size is negative, reading line by line
+                    try(BufferedReader reader =  new BufferedReader(new InputStreamReader(fs, "utf8"))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            emitStreamEvent(streamId, "data", line);
+                            if (tick > 0)
+                                SystemClock.sleep(tick);
+                        }
+                    } catch (IOException e) { throw e;}
                 }
-            } else if (encoding.equalsIgnoreCase("ascii")) {
+            }
+            else if (encoding.equalsIgnoreCase("ascii")) {
+                byte[] buffer = new byte[chunkSize];
                 while ((cursor = fs.read(buffer)) != -1) {
                     WritableArray chunk = Arguments.createArray();
                     for(int i =0;i<cursor;i++)
@@ -360,7 +362,10 @@ class RNFetchBlobFS {
                     if(tick > 0)
                         SystemClock.sleep(tick);
                 }
+                buffer = null;
+
             } else if (encoding.equalsIgnoreCase("base64")) {
+                byte[] buffer = new byte[chunkSize];
                 while ((cursor = fs.read(buffer)) != -1) {
                     if(cursor < chunkSize) {
                         byte[] copy = new byte[cursor];
@@ -372,6 +377,7 @@ class RNFetchBlobFS {
                     if(tick > 0)
                         SystemClock.sleep(tick);
                 }
+                buffer = null;
             } else {
                 emitStreamEvent(
                         streamId,
@@ -385,7 +391,6 @@ class RNFetchBlobFS {
             if(!error)
                 emitStreamEvent(streamId, "end", "");
             fs.close();
-            buffer = null;
         } catch (FileNotFoundException err) {
             emitStreamEvent(
                     streamId,
@@ -539,7 +544,7 @@ class RNFetchBlobFS {
     static void mkdir(String path, Promise promise) {
         File dest = new File(path);
         if(dest.exists()) {
-            promise.reject("EEXIST", (dest.isDirectory() ? "Folder" : "File") + " '" + path + "' already exists");
+            promise.reject("EEXIST", dest.isDirectory() ? "Folder" : "File" + " '" + path + "' already exists");
             return;
         }
         try {
@@ -760,36 +765,27 @@ class RNFetchBlobFS {
     }
 
     static void lstat(String path, final Callback callback) {
-        path = normalizePath(path);
-
-        new AsyncTask<String, Integer, Integer>() {
-            @Override
-            protected Integer doInBackground(String ...args) {
-                WritableArray res = Arguments.createArray();
-                if(args[0] == null) {
-                    callback.invoke("the path specified for lstat is either `null` or `undefined`.");
-                    return 0;
-                }
-                File src = new File(args[0]);
-                if(!src.exists()) {
-                    callback.invoke("failed to lstat path `" + args[0] + "` because it does not exist or it is not a folder");
-                    return 0;
-                }
-                if(src.isDirectory()) {
-                    String [] files = src.list();
-                    // File => list(): "If this abstract pathname does not denote a directory, then this method returns null."
-                    // We excluded that possibility above - ignore the "can produce NullPointerException" warning of the IDE.
-                    for(String p : files) {
-                        res.pushMap(statFile(src.getPath() + "/" + p));
-                    }
-                }
-                else {
-                    res.pushMap(statFile(src.getAbsolutePath()));
-                }
-                callback.invoke(null, res);
-                return 0;
+        WritableArray res = Arguments.createArray();
+        if(path == null) {
+            callback.invoke("the path specified for lstat is either `null` or `undefined`.");
+        }
+        String normalizePath = normalizePath(path);
+        File src = new File(normalizePath);
+        if(!src.exists()) {
+            callback.invoke("failed to lstat path `" + path + "` because it does not exist or it is not a folder");
+        }
+        if(src.isDirectory()) {
+            String [] files = src.list();
+            // File => list(): "If this abstract pathname does not denote a directory, then this method returns null."
+            // We excluded that possibility above - ignore the "can produce NullPointerException" warning of the IDE.
+            for(String p : files) {
+                res.pushMap(statFile(src.getPath() + "/" + p));
             }
-        }.execute(path);
+        }
+        else {
+            res.pushMap(statFile(src.getAbsolutePath()));
+        }
+        callback.invoke(null, res);
     }
 
     /**
@@ -897,14 +893,11 @@ class RNFetchBlobFS {
             MessageDigest md = MessageDigest.getInstance(algorithms.get(algorithm));
 
             FileInputStream inputStream = new FileInputStream(path);
-            int chunkSize = 4096 * 256; // 1Mb
-            byte[] buffer = new byte[chunkSize];
+            byte[] buffer = new byte[(int)file.length()];
 
-            if(file.length() != 0) {
-                int bytesRead;
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    md.update(buffer, 0, bytesRead);
-                }
+            int read;
+            while ((read = inputStream.read(buffer)) != -1) {
+                md.update(buffer, 0, read);
             }
 
             StringBuilder hexString = new StringBuilder();
