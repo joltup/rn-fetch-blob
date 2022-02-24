@@ -484,8 +484,9 @@ export interface AndroidApi {
      * App to handle the file. For example, open Gallery app to view an image, or install APK.
      * @param path Path of the file to be opened.
      * @param mime Basically system will open an app according to this MIME type.
+     * @param chooserTitle title for chooser, if not set the chooser won't be displayed (see [Android docs](https://developer.android.com/reference/android/content/Intent.html#createChooser(android.content.Intent,%20java.lang.CharSequence)))
      */
-    actionViewIntent(path: string, mime: string): Promise<any>;
+    actionViewIntent(path: string, mime: string, chooserTitle?: string): Promise<any>;
 
     /**
      * 
