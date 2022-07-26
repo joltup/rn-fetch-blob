@@ -571,6 +571,11 @@ export declare class RNFetchBlobSession {
  * A set of configurations that will be injected into a fetch method, with the following properties.
  */
 export interface RNFetchBlobConfig {
+
+    Progress?: { count?: number, interval?: number };
+    UploadProgress?: { count?: number, interval?: number };
+
+
     /**
      * When this property is true, the downloaded data will overwrite the existing file. (true by default)
      */

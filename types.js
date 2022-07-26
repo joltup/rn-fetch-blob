@@ -1,5 +1,7 @@
 
 type RNFetchBlobConfig = {
+  Progress: any,
+  UploadProgress: any,
   fileCache : bool,
   path : string,
   appendExt : string,
