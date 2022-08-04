@@ -78,8 +78,10 @@ if(!RNFetchBlob || !RNFetchBlob.fetchBlobForm || !RNFetchBlob.fetchBlob) {
 }
 
 function wrap(path:string):string {
-  const prefix = path.startsWith('content://') ? 'RNFetchBlob-content://' : 'RNFetchBlob-file://'
-  return prefix + path
+  if (path.startsWith('file://') || path.startsWith('content://')){
+    return 'RNFetchBlob-'+path;
+  }
+  return 'RNFetchBlob-file://' + path
 }
 
 /**
