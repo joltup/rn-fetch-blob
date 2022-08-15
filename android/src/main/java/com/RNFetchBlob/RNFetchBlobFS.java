@@ -1138,9 +1138,6 @@ class RNFetchBlobFS {
             return null;
         if(!path.matches("\\w+\\:.*"))
             return path;
-        if(path.startsWith("file://")) {
-            return path.replace("file://", "");
-        }
 
         Uri uri = Uri.parse(path);
         if(path.startsWith(RNFetchBlobConst.FILE_PREFIX_BUNDLE_ASSET)) {
