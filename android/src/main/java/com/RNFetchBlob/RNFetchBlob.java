@@ -107,6 +107,13 @@ public class RNFetchBlob extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void uriForFile(String path, Promise promise) {
+        Uri uriForFile = FileProvider.getUriForFile(getCurrentActivity(),
+                this.getReactApplicationContext().getPackageName() + ".provider", new File(path));
+        promise.resolve(uriForFile.toString());
+    }
+
+    @ReactMethod
     public void actionViewIntent(String path, String mime, final Promise promise) {
         try {
             Uri uriForFile = FileProvider.getUriForFile(this.getReactApplicationContext(),

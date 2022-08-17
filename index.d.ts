@@ -480,6 +480,12 @@ export interface AndroidDownloadOption {
 
 export interface AndroidApi {
     /**
+     * Get content uri for specific file
+     * @param path Path of the local file
+     */
+    uriForFile(path: string): Promise<string>;
+    
+    /**
      * When sending an ACTION_VIEW intent with given file path and MIME type, system will try to open an
      * App to handle the file. For example, open Gallery app to view an image, or install APK.
      * @param path Path of the file to be opened.

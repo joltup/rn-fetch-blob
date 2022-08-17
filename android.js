@@ -11,6 +11,13 @@ import {
 
 const RNFetchBlob:RNFetchBlobNative = NativeModules.RNFetchBlob
 
+function uriForFile(path: string) {
+  if (Platform.OS === 'android')
+    return RNFetchBlob.uriForFile(path);
+  else
+    return Promise.reject('RNFetchBlob.android.uriForFile only supports Android.')
+}
+
 /**
  * Send an intent to open the file.
  * @param  {string} path Path of the file to be open.
@@ -54,6 +61,7 @@ function getSDCardApplicationDir() {
 
 
 export default {
+  uriForFile,
   actionViewIntent,
   getContentIntent,
   addCompleteDownload,
