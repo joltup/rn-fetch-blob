@@ -441,14 +441,37 @@ export interface IOSApi {
      * Open a file in {@link https://developer.apple.com/reference/uikit/uidocumentinteractioncontroller UIDocumentInteractionController},
      * this is the default document viewer of iOS, supports several kinds of files. On Android, there's an similar method {@link android.actionViewIntent}.
      * @param path This is a required field, the path to the document. The path should NOT contains any scheme prefix.
+     * @param  {string} scheme URI scheme that needs to support, optional
      */
-    previewDocument(path: string): void;
+    previewDocument(path: string, scheme?: string): void;
 
     /**
      * Show options menu for interact with the file.
      * @param path This is a required field, the path to the document. The path should NOT contains any scheme prefix.
+     * @param  {string} scheme URI scheme that needs to support, optional
      */
-    openDocument(path: string): void;
+    openDocument(path: string, scheme?: string): void;
+
+    /**
+     * Displays an options menu using [UIDocumentInteractionController](https://developer.apple.com/reference/uikit/uidocumentinteractioncontroller).[presentOptionsMenu](https://developer.apple.com/documentation/uikit/uidocumentinteractioncontroller/1616814-presentoptionsmenu)
+     * @param  {string} path Path of the file to be open.
+     * @param  {string} scheme URI scheme that needs to support, optional
+     */
+    presentOptionsMenu(path: string, scheme?: string): void;
+
+    /**
+     * Displays a menu for opening the document using [UIDocumentInteractionController](https://developer.apple.com/reference/uikit/uidocumentinteractioncontroller).[presentOpenInMenu](https://developer.apple.com/documentation/uikit/uidocumentinteractioncontroller/1616807-presentopeninmenu)
+     * @param  {string} path Path of the file to be open.
+     * @param  {string} scheme URI scheme that needs to support, optional
+     */
+    presentOpenInMenu(path: string, scheme?: string): void;
+
+    /**
+     * Displays a full-screen preview of the target document using [UIDocumentInteractionController](https://developer.apple.com/reference/uikit/uidocumentinteractioncontroller).[presentPreview](https://developer.apple.com/documentation/uikit/uidocumentinteractioncontroller/1616828-presentpreview)
+     * @param  {string} path Path of the file to be open.
+     * @param  {string} scheme URI scheme that needs to support, optional
+     */
+    presentPreview(path: string, scheme?: string): void;
 }
 
 export interface AndroidDownloadOption {
@@ -475,7 +498,7 @@ export interface AndroidDownloadOption {
     /**
      * Boolean value that determines if notification will be displayed.
      */
-    showNotification: boolean 
+    showNotification: boolean
 }
 
 export interface AndroidApi {
