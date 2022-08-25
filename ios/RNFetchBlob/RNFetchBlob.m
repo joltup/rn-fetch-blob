@@ -502,7 +502,7 @@ RCT_EXPORT_METHOD(readFile:(NSString *)path
             reject(code, err, nil);
             return;
         }
-        if(encoding == @"ascii") {
+        if([encoding isEqual: @"ascii"]) {
             resolve((NSMutableArray *)content);
         }
         else {
