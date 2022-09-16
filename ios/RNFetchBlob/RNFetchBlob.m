@@ -76,6 +76,7 @@ RCT_EXPORT_MODULE();
              @"MovieDir" : [RNFetchBlobFS getMovieDir],
              @"MusicDir" : [RNFetchBlobFS getMusicDir],
              @"PictureDir" : [RNFetchBlobFS getPictureDir],
+             @"ApplicationSupportDir" : [RNFetchBlobFS getApplicationSupportDir],
              };
 }
 

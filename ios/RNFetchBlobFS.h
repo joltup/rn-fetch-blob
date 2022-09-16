@@ -54,6 +54,7 @@
 + (NSString *) getMovieDir;
 + (NSString *) getMusicDir;
 + (NSString *) getPictureDir;
++ (NSString *) getApplicationSupportDir;
 + (NSString *) getTempPath;
 + (NSString *) getTempPath:(NSString*)taskId withExtension:(NSString *)ext;
 + (NSString *) getPathOfAsset:(NSString *)assetURI;

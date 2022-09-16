@@ -23,7 +23,8 @@ const dirs = {
   SDCardDir: RNFetchBlob.SDCardDir, // Depracated
   SDCardApplicationDir: RNFetchBlob.SDCardApplicationDir, // Deprecated
   MainBundleDir : RNFetchBlob.MainBundleDir,
-  LibraryDir : RNFetchBlob.LibraryDir
+  LibraryDir : RNFetchBlob.LibraryDir,
+  ApplicationSupportDir: RNFetchBlob.ApplicationSupportDir
 }
 
 function addCode(code: string, error: Error): Error {
