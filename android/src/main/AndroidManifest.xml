@@ -21,7 +21,7 @@
     <!-- Required to read and write the expansion files on shared storage -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
-    <application android:label="@string/app_name">
+    <application>
 
         <provider
             android:name="com.RNFetchBlob.Utils.FileProvider"
