@@ -7,7 +7,6 @@ import {
   DeviceEventEmitter,
   NativeAppEventEmitter,
   Platform,
-  AsyncStorage,
   AppState,
 } from 'react-native'
 import type {
@@ -22,7 +21,7 @@ import fs from './fs'
 import getUUID from './utils/uuid'
 import base64 from 'base-64'
 import polyfill from './polyfill'
-import _ from 'lodash'
+import reduce from 'lodash/reduce'
 import android from './android'
 import ios from './ios'
 import JSONStream from './json-stream'
@@ -105,7 +104,13 @@ function wrap(path:string):string {
  *                   activity takes place )
  *                   If it doesn't exist, the file is downloaded as usual
  *         @property {number} timeout
- *                   Request timeout in millionseconds, by default it's 30000ms.
+ *                   Request timeout in millionseconds, by default it's 60000ms.
+ *         @property {boolean} followRedirect
+ *                   Follow redirects automatically, default true
+ *         @property {boolean} trusty
+ *                   Trust all certificates
+ *         @property {boolean} wifiOnly
+ *                   Only do requests through WiFi. Android SDK 21 or above only.
  *
  * @return {function} This method returns a `fetch` method instance.
  */
@@ -219,7 +224,7 @@ function fetch(...args:any):Promise {
 
   // # 241 normalize null or undefined headers, in case nil or null string
   // pass to native context
-  headers = _.reduce(headers, (result, value, key) => {
+  headers = reduce(headers, (result, value, key) => {
     result[key] = value || ''
     return result
   }, {});
@@ -229,8 +234,14 @@ function fetch(...args:any):Promise {
     return fetchFile(options, method, url, headers, body)
   }
 
+  let promiseResolve;
+  let promiseReject;
+
   // from remote HTTP(S)
   let promise = new Promise((resolve, reject) => {
+    promiseResolve = resolve;
+    promiseReject = reject;
+
     let nativeMethodName = Array.isArray(body) ? 'fetchBlobForm' : 'fetchBlob'
 
     // on progress event listener
@@ -371,6 +382,7 @@ function fetch(...args:any):Promise {
     subscriptionUpload.remove()
     stateEvent.remove()
     RNFetchBlob.cancelRequest(taskId, fn)
+    promiseReject(new Error("canceled"))
   }
   promise.taskId = taskId
 

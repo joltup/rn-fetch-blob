@@ -136,6 +136,19 @@ function pathForAppGroup(groupName: string): Promise {
 }
 
 /**
+ * Returns the path for the app group synchronous.
+ * @param  {string} groupName Name of app group
+ * @return {string} Path of App Group dir
+ */
+function syncPathAppGroup(groupName: string): string {
+  if (Platform.OS === 'ios') {
+    return RNFetchBlob.syncPathAppGroup(groupName);
+  } else {
+    return '';
+  }
+}
+
+/**
  * Wrapper method of readStream.
  * @param  {string} path Path of the file.
  * @param  {'base64' | 'utf8' | 'ascii'} encoding Encoding of read stream.
@@ -409,6 +422,7 @@ export default {
   writeFile,
   appendFile,
   pathForAppGroup,
+  syncPathAppGroup,
   readFile,
   hash,
   hashWithKey,

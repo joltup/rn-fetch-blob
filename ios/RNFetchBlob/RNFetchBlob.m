@@ -68,9 +68,14 @@ RCT_EXPORT_MODULE();
 - (NSDictionary *)constantsToExport
 {
     return @{
-             @"MainBundleDir" : [RNFetchBlobFS getMainBundleDir],
+             @"CacheDir" : [RNFetchBlobFS getCacheDir],
              @"DocumentDir": [RNFetchBlobFS getDocumentDir],
-             @"CacheDir" : [RNFetchBlobFS getCacheDir]
+             @"DownloadDir" : [RNFetchBlobFS getDownloadDir],
+             @"LibraryDir" : [RNFetchBlobFS getLibraryDir],
+             @"MainBundleDir" : [RNFetchBlobFS getMainBundleDir],
+             @"MovieDir" : [RNFetchBlobFS getMovieDir],
+             @"MusicDir" : [RNFetchBlobFS getMusicDir],
+             @"PictureDir" : [RNFetchBlobFS getPictureDir],
              };
 }
 
@@ -160,7 +165,7 @@ RCT_EXPORT_METHOD(createFile:(NSString *)path
         fileContent = [[NSData alloc] initWithData:[data dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES]];
     }
     else if([[encoding lowercaseString] isEqualToString:@"base64"]) {
-        fileContent = [[NSData alloc] initWithBase64EncodedData:data options:0];
+        fileContent = [[NSData alloc] initWithBase64EncodedData:data options:NSDataBase64DecodingIgnoreUnknownCharacters];
     }
     else if([[encoding lowercaseString] isEqualToString:@"uri"]) {
         NSString * orgPath = [data stringByReplacingOccurrencesOfString:FILE_PREFIX withString:@""];
@@ -225,6 +230,18 @@ RCT_EXPORT_METHOD(pathForAppGroup:(NSString *)groupName
         resolve(path);
     } else {
         reject(@"EUNSPECIFIED", @"could not find path for app group", nil);
+    }
+}
+
+#pragma mark - fs.syncPathAppGroup
+RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(syncPathAppGroup:(NSString *)groupName) {
+    NSURL *pathUrl = [[NSFileManager defaultManager] containerURLForSecurityApplicationGroupIdentifier:groupName];
+    NSString *path = [pathUrl path];
+
+    if(path) {
+        return path;
+    } else {
+        return @"";
     }
 }
 
@@ -622,7 +639,12 @@ RCT_EXPORT_METHOD(df:(RCTResponseSenderBlock)callback)
 - (UIViewController *) documentInteractionControllerViewControllerForPreview: (UIDocumentInteractionController *) controller
 {
     UIWindow *window = [UIApplication sharedApplication].keyWindow;
-    return window.rootViewController;
+    UIViewController *currentlyPresentedView = [window.rootViewController presentedViewController];
+    if (currentlyPresentedView == nil)
+    {
+        return window.rootViewController;
+    }
+    return currentlyPresentedView;
 }
 
 # pragma mark - check expired network events

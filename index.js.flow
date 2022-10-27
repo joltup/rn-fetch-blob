@@ -1,0 +1,189 @@
+// @flow strict
+
+declare class AndroidApi {
+  actionViewIntent(path: string, mime?: string): Promise<void>;
+  addCompleteDownload(options: AndroidDownloadOption): Promise<void>;
+  getContentIntent(mime: string): Promise<string>;
+  getSDCardApplicationDir(): Promise<string>;
+  getSDCardDir(): Promise<string>;
+}
+
+declare class FetchBlobResponse {
+  data: string;
+  respInfo: RNFetchBlobResponseInfo;
+  taskId: string;
+  type: "utf8" | "base64" | "path";
+  array(): Promise<number[]>;
+  base64(): string | Promise<string>;
+  blob(): Promise<Blob>;
+  flush(): Promise<void>;
+  info(): RNFetchBlobResponseInfo;
+  // $FlowExpectedError Not possible to specify in strict mode.
+  json(): any;
+  path(): string;
+  readFile(encoding: Encoding): ?Promise<number[] | string>;
+  readStream(encoding: Encoding): ?Promise<RNFetchBlobReadStream>;
+  session(name: string): ?RNFetchBlobSession;
+  text(): string | Promise<string>;
+}
+
+declare class FsApi {
+  RNFetchBlobSession: RNFetchBlobSession;
+  dirs: Dirs;
+  appendFile(path: string, data: string | number[], encoding?: Encoding | "uri"): Promise<number>;
+  asset(path: string): string;
+  cp(path: string, dest: string): Promise<boolean>;
+  createFile(path: string, data: string, encoding: Encoding | "uri"): Promise<string>;
+  df(): Promise<AndroidFsStat | IosFsStat>;
+  exists(path: string): Promise<boolean>;
+  hash(path: string, algorithm: HashAlgorithm): Promise<string>;
+  isDir(path: string): Promise<boolean>;
+  ls(path: string): Promise<string[]>;
+  lstat(path: string): Promise<RNFetchBlobStat[]>;
+  mkdir(path: string): Promise<boolean>;
+  mv(path: string, dest: string): Promise<boolean>;
+  pathForAppGroup(groupName: string): Promise<string>;
+  readFile(path: string, encoding: Encoding, bufferSize?: number): Promise<number[] | string>;
+  readStream(path: string, encoding: Encoding, bufferSize?: number, tick?: number): Promise<RNFetchBlobReadStream>;
+  scanFile(pairs: {mime: string, path: string}[]): Promise<void>;
+  session(name: string): RNFetchBlobSession;
+  slice(src: string, dest: string, start: number, end: number): Promise<string>;
+  stat(path: string): Promise<RNFetchBlobStat>;
+  unlink(path: string): Promise<void>;
+  writeFile(path: string, data: string | number[], encoding?: Encoding | "uri"): Promise<number>;
+  writeStream(path: string, encoding: Encoding, append?: boolean): Promise<RNFetchBlobWriteStream>;
+}
+
+declare class IosApi {
+  excludeFromBackupKey(path: string): Promise<void>;
+  openDocument(path: string, scheme?: string): Promise<void>;
+  previewDocument(path: string, scheme?: string): Promise<void>;
+}
+
+declare class RNFetchBlobReadStream {
+  bufferSize?: number;
+  closed: boolean;
+  encoding: Encoding;
+  path: string;
+  tick: number;
+  onData(fn: (chunk: string) => void): void;
+  onEnd(fn: () => void): void;
+  onError(fn: (err: Error) => void): void;
+  open(): void;
+}
+
+declare class RNFetchBlobSession {
+  static getSession(name: string): RNFetchBlobSession;
+  static removeSession(name: string): void;
+  static setSession(name: string, val: RNFetchBlobSession): void;
+
+  name: string;
+  add(path: string): RNFetchBlobSession;
+  constructor(name: string, list: string[]): RNFetchBlobSession;
+  dispose(): Promise<void>;
+  list(): string[];
+  remove(path: string): RNFetchBlobSession;
+}
+
+declare class RNFetchBlobWriteStream {
+  append: boolean;
+  encoding: string;
+  id: string;
+  close(): void;
+  write(data: string): Promise<void>;
+}
+
+declare class RNFetchBlob {
+  android: AndroidApi;
+  base64: {+decode: (input: string) => string, +encode: (input: string) => string};
+  fs: FsApi;
+  ios: IosApi;
+  config(options: RNFetchBlobConfig): {fetch: (method: Methods, url: string, headers?: {[key: string]: string}, body?: string | FormField[]) => StatefulPromise<FetchBlobResponse>};
+  fetch(method: Methods, url: string, headers?: {[key: string]: string}, body?: string | FormField[]): StatefulPromise<FetchBlobResponse>;
+  session(name: string): RNFetchBlobSession;
+  wrap(path: string): string;
+}
+
+declare class StatefulPromise<T> extends Promise<T> {
+  cancel(callback?: (error: ?string, taskId: ?string) => void): void;
+  expire(callback: () => void): StatefulPromise<void>;
+  progress(config: {count?: number, interval?: number} | ProgressCallback, callback?: ProgressCallback): StatefulPromise<T>;
+  stateChange(callback: (state: RNFetchBlobResponseInfo) => void): StatefulPromise<T>;
+  uploadProgress(config: {count?: number, interval?: number} | UploadProgressCallback, callback?: UploadProgressCallback): StatefulPromise<T>;
+}
+
+export type AddAndroidDownloads = {
+  description?: string,
+  mediaScannable?: boolean,
+  mime?: string,
+  notification?: boolean,
+  path?: string,
+  title?: string,
+  useDownloadManager?: boolean
+};
+export type AndroidDownloadOption = {
+  description?: string,
+  mime?: string,
+  path: string,
+  showNotification?: boolean,
+  title?: string
+};
+export type AndroidFsStat = {
+  external_free: number,
+  external_total: number,
+  internal_free: number,
+  internal_total: number
+};
+export type Dirs = {
+  CacheDir: string,
+  DCIMDir: string,
+  DocumentDir: string,
+  DownloadDir: string,
+  LibraryDir: string,
+  MainBundleDir: string,
+  MovieDir: string,
+  MusicDir: string,
+  PictureDir: string,
+  SDCardApplicationDir: string,
+  SDCardDir: string
+};
+export type Encoding = "utf8" | "ascii" | "base64";
+export type FormField = {data: string, filename?: string, name: string, type?: string};
+export type HashAlgorithm = "md5" | "sha1" | "sha224" | "sha256" | "sha384" | "sha512";
+export type IosFsStat = {free: number, total: number};
+export type Methods = "POST" | "GET" | "DELETE" | "PUT" | "post" | "get" | "delete" | "put";
+export type ProgressCallback = (received: number, total: number) => void;
+export type RNFetchBlobConfig = {
+  IOSBackgroundTask?: boolean,
+  addAndroidDownloads?: AddAndroidDownloads,
+  appendExt?: string,
+  fileCache?: boolean,
+  indicator?: boolean,
+  overwrite?: boolean,
+  path?: string,
+  session?: string,
+  timeout?: number,
+  trusty?: boolean,
+  wifiOnly?: boolean,
+  followRedirect?: boolean
+};
+export type RNFetchBlobResponseInfo = {
+  headers: {[fieldName: string]: string},
+  redirects: string[],
+  respType: "text" | "blob" | "" | "json",
+  rnfbEncode: "path" | Encoding,
+  state: string,
+  status: number,
+  taskId: string,
+  timeout: boolean
+};
+export type RNFetchBlobStat = {
+  filename: string,
+  lastModified: number,
+  path: string,
+  size: number,
+  type: "directory" | "file" | "asset"
+};
+export type UploadProgressCallback = (sent: number, total: number) => void;
+
+declare export default RNFetchBlob;

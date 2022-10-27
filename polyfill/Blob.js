@@ -2,12 +2,13 @@
 // Use of this source code is governed by a MIT-style license that can be
 // found in the LICENSE file.
 
-import RNFetchBlob from '../index.js'
+import {NativeModules} from 'react-native';
 import fs from '../fs.js'
 import getUUID from '../utils/uuid'
 import Log from '../utils/log.js'
 import EventTarget from './EventTarget'
 
+const RNFetchBlob = NativeModules.RNFetchBlob
 const log = new Log('Blob')
 const blobCacheDir = fs.dirs.DocumentDir + '/RNFetchBlob-blobs/'
 

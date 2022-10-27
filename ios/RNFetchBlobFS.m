@@ -10,7 +10,6 @@
 #import "RNFetchBlob.h"
 #import "RNFetchBlobFS.h"
 #import "RNFetchBlobConst.h"
-#import "IOS7Polyfill.h"
 @import AssetsLibrary;
 
 #import <CommonCrypto/CommonDigest.h>
@@ -102,6 +101,14 @@ NSMutableDictionary *fileStreams = nil;
 
 + (NSString *) getDocumentDir {
     return [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+}
+
++ (NSString *) getDownloadDir {
+    return [NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask, YES) firstObject];
+}
+
++ (NSString *) getLibraryDir {
+    return [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) firstObject];
 }
 
 + (NSString *) getMusicDir {
@@ -367,7 +374,7 @@ NSMutableDictionary *fileStreams = nil;
 
         NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:path];
         NSData * content = nil;
-        if([encoding RNFBContainsString:@"base64"]) {
+        if([encoding containsString:@"base64"]) {
             content = [[NSData alloc] initWithBase64EncodedString:data options:0];
         }
         else if([encoding isEqualToString:@"uri"]) {

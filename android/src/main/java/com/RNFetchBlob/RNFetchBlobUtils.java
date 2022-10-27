@@ -56,22 +56,21 @@ public class RNFetchBlobUtils {
     public static OkHttpClient.Builder getUnsafeOkHttpClient(OkHttpClient client) {
         try {
             // Create a trust manager that does not validate certificate chains
-            final TrustManager[] trustAllCerts = new TrustManager[]{
-                    new X509TrustManager() {
-                        @Override
-                        public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
-                        }
+            final X509TrustManager x509TrustManager = new X509TrustManager() {
+                @Override
+                public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+                }
 
-                        @Override
-                        public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
-                        }
+                @Override
+                public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+                }
 
-                        @Override
-                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                            return new java.security.cert.X509Certificate[]{};
-                        }
-                    }
+                @Override
+                public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                    return new java.security.cert.X509Certificate[]{};
+                }
             };
+            final TrustManager[] trustAllCerts = new TrustManager[]{ x509TrustManager };
 
             // Install the all-trusting trust manager
             final SSLContext sslContext = SSLContext.getInstance("SSL");
@@ -80,7 +79,7 @@ public class RNFetchBlobUtils {
             final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
 
             OkHttpClient.Builder builder = client.newBuilder();
-            builder.sslSocketFactory(sslSocketFactory);
+            builder.sslSocketFactory(sslSocketFactory, x509TrustManager);
             builder.hostnameVerifier(new HostnameVerifier() {
                 @Override
                 public boolean verify(String hostname, SSLSession session) {

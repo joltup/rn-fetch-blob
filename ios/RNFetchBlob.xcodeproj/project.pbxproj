@@ -45,7 +45,6 @@
 		A19B48241D98102400E6868A /* RNFetchBlobProgress.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RNFetchBlobProgress.m; sourceTree = "<group>"; };
 		A1AAE2971D300E3E0051D11C /* RNFetchBlobReqBuilder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RNFetchBlobReqBuilder.h; sourceTree = "<group>"; };
 		A1AAE2981D300E4D0051D11C /* RNFetchBlobReqBuilder.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RNFetchBlobReqBuilder.m; sourceTree = "<group>"; };
-		A1F950181D7E9134002A95A6 /* IOS7Polyfill.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IOS7Polyfill.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,7 +70,6 @@
 			children = (
 				A19B48241D98102400E6868A /* RNFetchBlobProgress.m */,
 				A19B48231D98100800E6868A /* RNFetchBlobProgress.h */,
-				A1F950181D7E9134002A95A6 /* IOS7Polyfill.h */,
 				A1AAE2981D300E4D0051D11C /* RNFetchBlobReqBuilder.m */,
 				A1AAE2971D300E3E0051D11C /* RNFetchBlobReqBuilder.h */,
 				A158F42E1D0539CE006FFD38 /* RNFetchBlobNetwork.h */,

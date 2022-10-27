@@ -32,6 +32,7 @@ extern NSString *const CONFIG_USE_TEMP;
 extern NSString *const CONFIG_FILE_PATH;
 extern NSString *const CONFIG_FILE_EXT;
 extern NSString *const CONFIG_TRUSTY;
+extern NSString *const CONFIG_WIFI_ONLY;
 extern NSString *const CONFIG_INDICATOR;
 extern NSString *const CONFIG_KEY;
 extern NSString *const CONFIG_EXTRA_BLOB_CTYPE;

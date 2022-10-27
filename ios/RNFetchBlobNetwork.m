@@ -63,7 +63,7 @@ static void initialize_tables() {
 + (RNFetchBlobNetwork* _Nullable)sharedInstance {
     static id _sharedInstance = nil;
     static dispatch_once_t onceToken;
-    
+
     dispatch_once(&onceToken, ^{
         _sharedInstance = [[self alloc] init];
     });
@@ -135,8 +135,14 @@ static void initialize_tables() {
 
 - (void) cancelRequest:(NSString *)taskId
 {
+    NSURLSessionDataTask * task;
+    
     @synchronized ([RNFetchBlobNetwork class]) {
-        [[self.requestsTable objectForKey:taskId] cancelRequest:taskId];
+        task = [self.requestsTable objectForKey:taskId].task;
+    }
+    
+    if (task && task.state == NSURLSessionTaskStateRunning) {
+        [task cancel];
     }
 }
 

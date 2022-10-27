@@ -6,23 +6,25 @@ def safeExtGet(prop, fallback) {
 
 repositories {
     mavenCentral()
+    google()
 }
 
 buildscript {
     repositories {
-        jcenter()
+        mavenCentral()
+        google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
+        classpath 'com.android.tools.build:gradle:4.0.1'
     }
 }
 
 android {
-    compileSdkVersion safeExtGet('compileSdkVersion', 26)
-    buildToolsVersion safeExtGet('buildToolsVersion', '26.0.3')
+    compileSdkVersion safeExtGet('compileSdkVersion', 30)
+    buildToolsVersion safeExtGet('buildToolsVersion', '28.0.3')
     defaultConfig {
         minSdkVersion safeExtGet('minSdkVersion', 16)
-        targetSdkVersion safeExtGet('targetSdkVersion', 26)
+        targetSdkVersion safeExtGet('targetSdkVersion', 30)
         versionCode 1
         versionName "1.0"
     }
@@ -37,7 +39,9 @@ android {
 }
 
 dependencies {
-    compile "com.facebook.react:react-native:${safeExtGet('reactNativeVersion', '+')}"
-    //compile 'com.squareup.okhttp3:okhttp:+'
-    //{RNFetchBlob_PRE_0.28_DEPDENDENCY}
+    implementation "com.facebook.react:react-native:${safeExtGet('reactNativeVersion', '+')}"
+    implementation "com.squareup.okhttp3:okhttp:${safeExtGet('okhttp', '+')}"
+    implementation "com.squareup.okhttp3:logging-interceptor:${safeExtGet('okhttp', '+')}"
+    implementation "com.squareup.okhttp3:okhttp-urlconnection:${safeExtGet('okhttp', '+')}"
+//    {RNFetchBlob_PRE_0.28_DEPDENDENCY}
 }

@@ -1,6 +1,6 @@
 {
   "name": "rn-fetch-blob",
-  "version": "0.10.13",
+  "version": "0.13.0-beta.1",
   "description": "A module provides upload, download, and files access API. Supports file stream read/write for process large files.",
   "main": "index.js",
   "scripts": {
@@ -8,7 +8,8 @@
   },
   "dependencies": {
     "base-64": "0.1.0",
-    "glob": "7.0.6"
+    "glob": "7.0.6",
+    "lodash": "4.17.15"
   },
   "keywords": [
     "react-native",
@@ -21,11 +22,6 @@
     "filestream",
     "image header"
   ],
-  "rnpm": {
-    "commands": {
-      "prelink": "node ./node_modules/rn-fetch-blob/scripts/prelink.js"
-    }
-  },
   "repository": {
     "url": "https://github.com/joltup/rn-fetch-blob.git"
   },

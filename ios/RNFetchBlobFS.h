@@ -46,10 +46,15 @@
 @property (nonatomic) BOOL appendData;
 
 // get dirs
-+ (NSString *) getMainBundleDir;
-+ (NSString *) getTempPath;
 + (NSString *) getCacheDir;
 + (NSString *) getDocumentDir;
++ (NSString *) getDownloadDir;
++ (NSString *) getLibraryDir;
++ (NSString *) getMainBundleDir;
++ (NSString *) getMovieDir;
++ (NSString *) getMusicDir;
++ (NSString *) getPictureDir;
++ (NSString *) getTempPath;
 + (NSString *) getTempPath:(NSString*)taskId withExtension:(NSString *)ext;
 + (NSString *) getPathOfAsset:(NSString *)assetURI;
 + (NSString *) getPathForAppGroup:(NSString *)groupName;

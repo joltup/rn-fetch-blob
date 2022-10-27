@@ -71,32 +71,45 @@ class RNFetchBlobFS {
                 }
             }
 
-            FileOutputStream fout = new FileOutputStream(f, append);
             // write data from a file
             if(encoding.equalsIgnoreCase(RNFetchBlobConst.DATA_ENCODE_URI)) {
                 String normalizedData = normalizePath(data);
                 File src = new File(normalizedData);
                 if (!src.exists()) {
                     promise.reject("ENOENT", "No such file '" + path + "' " + "('" + normalizedData + "')");
-                    fout.close();
                     return;
                 }
-                FileInputStream fin = new FileInputStream(src);
                 byte[] buffer = new byte [10240];
                 int read;
                 written = 0;
-                while((read = fin.read(buffer)) > 0) {
-                    fout.write(buffer, 0, read);
-                    written += read;
+                FileInputStream fin = null;
+                FileOutputStream fout = null;
+                try {
+                    fin = new FileInputStream(src);
+                    fout = new FileOutputStream(f, append);
+                    while ((read = fin.read(buffer)) > 0) {
+                        fout.write(buffer, 0, read);
+                        written += read;
+                    }
+                } finally {
+                    if (fin != null) {
+                        fin.close();
+                    }
+                    if (fout != null) {
+                        fout.close();
+                    }
                 }
-                fin.close();
             }
             else {
                 byte[] bytes = stringToBytes(data, encoding);
-                fout.write(bytes);
-                written = bytes.length;
+                FileOutputStream fout = new FileOutputStream(f, append);
+                try {
+                    fout.write(bytes);
+                    written = bytes.length;
+                } finally {
+                    fout.close();
+                }
             }
-            fout.close();
             promise.resolve(written);
         } catch (FileNotFoundException e) {
             // According to https://docs.oracle.com/javase/7/docs/api/java/io/FileOutputStream.html
@@ -131,12 +144,15 @@ class RNFetchBlobFS {
             }
 
             FileOutputStream os = new FileOutputStream(f, append);
-            byte[] bytes = new byte[data.size()];
-            for(int i=0;i<data.size();i++) {
-                bytes[i] = (byte) data.getInt(i);
+            try {
+                byte[] bytes = new byte[data.size()];
+                for (int i = 0; i < data.size(); i++) {
+                    bytes[i] = (byte) data.getInt(i);
+                }
+                os.write(bytes);
+            } finally {
+                os.close();
             }
-            os.write(bytes);
-            os.close();
             promise.resolve(data.size());
         } catch (FileNotFoundException e) {
             // According to https://docs.oracle.com/javase/7/docs/api/java/io/FileOutputStream.html
@@ -238,16 +254,16 @@ class RNFetchBlobFS {
 
         res.put("DocumentDir", ctx.getFilesDir().getAbsolutePath());
         res.put("CacheDir", ctx.getCacheDir().getAbsolutePath());
-        res.put("DCIMDir", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath());
-        res.put("PictureDir", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getAbsolutePath());
-        res.put("MusicDir", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC).getAbsolutePath());
-        res.put("DownloadDir", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath());
-        res.put("MovieDir", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES).getAbsolutePath());
-        res.put("RingtoneDir", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_RINGTONES).getAbsolutePath());
+        res.put("DCIMDir", ctx.getExternalFilesDir(Environment.DIRECTORY_DCIM).getAbsolutePath());
+        res.put("PictureDir", ctx.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getAbsolutePath());
+        res.put("MusicDir", ctx.getExternalFilesDir(Environment.DIRECTORY_MUSIC).getAbsolutePath());
+        res.put("DownloadDir", ctx.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath());
+        res.put("MovieDir", ctx.getExternalFilesDir(Environment.DIRECTORY_MOVIES).getAbsolutePath());
+        res.put("RingtoneDir", ctx.getExternalFilesDir(Environment.DIRECTORY_RINGTONES).getAbsolutePath());
         String state;
         state = Environment.getExternalStorageState();
         if (state.equals(Environment.MEDIA_MOUNTED)) {
-            res.put("SDCardDir", Environment.getExternalStorageDirectory().getAbsolutePath());
+            res.put("SDCardDir", ctx.getExternalFilesDir(null).getAbsolutePath());
 
             File externalDirectory = ctx.getExternalFilesDir(null);
 
@@ -262,9 +278,9 @@ class RNFetchBlobFS {
         return res;
     }
 
-    static public void getSDCardDir(Promise promise) {
+    static public void getSDCardDir(ReactApplicationContext ctx, Promise promise) {
         if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-            promise.resolve(Environment.getExternalStorageDirectory().getAbsolutePath());
+            promise.resolve(ctx.getExternalFilesDir(null).getAbsolutePath());
         } else {
             promise.reject("RNFetchBlob.getSDCardDir", "External storage not mounted");
         }
@@ -525,7 +541,7 @@ class RNFetchBlobFS {
     static void mkdir(String path, Promise promise) {
         File dest = new File(path);
         if(dest.exists()) {
-            promise.reject("EEXIST", dest.isDirectory() ? "Folder" : "File" + " '" + path + "' already exists");
+            promise.reject("EEXIST", (dest.isDirectory() ? "Folder" : "File") + " '" + path + "' already exists");
             return;
         }
         try {
@@ -652,9 +668,14 @@ class RNFetchBlobFS {
         }
         else {
             path = normalizePath(path);
-            boolean exist = new File(path).exists();
-            boolean isDir = new File(path).isDirectory();
-            callback.invoke(exist, isDir);
+            if (path != null) {
+                boolean exist = new File(path).exists();
+                boolean isDir = new File(path).isDirectory();
+                callback.invoke(exist, isDir);
+            }
+            else {
+                callback.invoke(false, false);
+            }
         }
     }
 
@@ -878,11 +899,14 @@ class RNFetchBlobFS {
             MessageDigest md = MessageDigest.getInstance(algorithms.get(algorithm));
 
             FileInputStream inputStream = new FileInputStream(path);
-            byte[] buffer = new byte[(int)file.length()];
+            int chunkSize = 4096 * 256; // 1Mb
+            byte[] buffer = new byte[chunkSize];
 
-            int read;
-            while ((read = inputStream.read(buffer)) != -1) {
-                md.update(buffer, 0, read);
+            if(file.length() != 0) {
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    md.update(buffer, 0, bytesRead);
+                }
             }
 
             StringBuilder hexString = new StringBuilder();
@@ -1002,13 +1026,13 @@ class RNFetchBlobFS {
         }
     }
 
-    static void df(Callback callback) {
-        StatFs stat = new StatFs(Environment.getDataDirectory().getPath());
+    static void df(Callback callback, ReactApplicationContext ctx) {
+        StatFs stat = new StatFs(ctx.getFilesDir().getPath());
         WritableMap args = Arguments.createMap();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             args.putString("internal_free", String.valueOf(stat.getFreeBytes()));
             args.putString("internal_total", String.valueOf(stat.getTotalBytes()));
-            StatFs statEx = new StatFs(Environment.getExternalStorageDirectory().getPath());
+            StatFs statEx = new StatFs(ctx.getExternalFilesDir(null).getPath());
             args.putString("external_free", String.valueOf(statEx.getFreeBytes()));
             args.putString("external_total", String.valueOf(statEx.getTotalBytes()));
 

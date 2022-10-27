@@ -6,7 +6,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
-import android.support.v4.content.FileProvider;
+import androidx.core.content.FileProvider;
 import android.util.SparseArray;
 
 import com.facebook.react.bridge.ActivityEventListener;
@@ -24,11 +24,11 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.network.ForwardingCookieHandler;
 import com.facebook.react.modules.network.CookieJarContainer;
 import com.facebook.react.modules.network.OkHttpClientProvider;
-import okhttp3.OkHttpClient;
+
 import okhttp3.JavaNetCookieJar;
+import okhttp3.OkHttpClient;
 
 import java.io.File;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -109,29 +109,26 @@ public class RNFetchBlob extends ReactContextBaseJavaModule {
     @ReactMethod
     public void actionViewIntent(String path, String mime, final Promise promise) {
         try {
-            Uri uriForFile = FileProvider.getUriForFile(getCurrentActivity(),
+            Uri uriForFile = FileProvider.getUriForFile(this.getReactApplicationContext(),
                     this.getReactApplicationContext().getPackageName() + ".provider", new File(path));
 
-            if (Build.VERSION.SDK_INT >= 24) {
-                // Create the intent with data and type
-                Intent intent = new Intent(Intent.ACTION_VIEW)
-                        .setDataAndType(uriForFile, mime);
+            // Create the intent with data and type
+            Intent intent = new Intent(Intent.ACTION_VIEW)
+                    .setDataAndType(uriForFile, mime);
 
-                // Set flag to give temporary permission to external app to use FileProvider
-                intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            // Set flag to give temporary permission to external app to use FileProvider
+            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                // All the activity to be opened outside of an activity
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-                // Validate that the device can open the file
-                PackageManager pm = getCurrentActivity().getPackageManager();
-                if (intent.resolveActivity(pm) != null) {
-                    this.getReactApplicationContext().startActivity(intent);
-                }
-
-            } else {
-                Intent intent = new Intent(Intent.ACTION_VIEW)
-                        .setDataAndType(Uri.parse("file://" + path), mime).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
+            // Validate that the device can open the file
+            PackageManager pm = getCurrentActivity().getPackageManager();
+            if (intent.resolveActivity(pm) != null) {
                 this.getReactApplicationContext().startActivity(intent);
+            } else {
+                promise.reject("EUNSPECIFIED", "Cannot open the URL.");
             }
+
             ActionViewVisible = true;
 
             final LifecycleEventListener listener = new LifecycleEventListener() {
@@ -345,7 +342,7 @@ public class RNFetchBlob extends ReactContextBaseJavaModule {
         fsThreadPool.execute(new Runnable() {
             @Override
             public void run() {
-                RNFetchBlobFS.df(callback);
+                RNFetchBlobFS.df(callback, getReactApplicationContext());
             }
         });
     }
@@ -413,7 +410,7 @@ public class RNFetchBlob extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void getSDCardDir(Promise promise) {
-        RNFetchBlobFS.getSDCardDir(promise);
+        RNFetchBlobFS.getSDCardDir(this.getReactApplicationContext(), promise);
     }
 
     @ReactMethod

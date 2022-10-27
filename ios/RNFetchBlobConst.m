@@ -16,6 +16,7 @@ NSString *const CONFIG_USE_TEMP = @"fileCache";
 NSString *const CONFIG_FILE_PATH = @"path";
 NSString *const CONFIG_FILE_EXT = @"appendExt";
 NSString *const CONFIG_TRUSTY = @"trusty";
+NSString *const CONFIG_WIFI_ONLY = @"wifiOnly";
 NSString *const CONFIG_INDICATOR = @"indicator";
 NSString *const CONFIG_KEY = @"key";
 NSString *const CONFIG_EXTRA_BLOB_CTYPE = @"binaryContentTypes";

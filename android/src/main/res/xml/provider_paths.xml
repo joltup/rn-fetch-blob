@@ -6,4 +6,7 @@
     <files-path
         name="files-path"
         path="." /> <!-- Used to access into application data files -->
+    <cache-path
+        name="cache-path"
+        path="." /> <!-- Used to access files in cache directory -->
 </paths>
