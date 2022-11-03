@@ -720,7 +720,7 @@ RNFetchBlob.fs.readStream(
       console.log('oops', err)
     })
     ifstream.onEnd(() => {
-      <Image source={{ uri : 'data:image/png,base64' + data }}
+      <Image source={{ uri : 'data:image/png;base64,' + data }}
     })
 })
 ```
