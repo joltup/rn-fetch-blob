@@ -44,12 +44,9 @@ export default class RNFetchBlobSession {
   }
 
   remove(path:string):RNFetchBlobSession {
-    let list = sessions[this.name]
-    for(let i of list) {
-      if(list[i] === path) {
-        sessions[this.name].splice(i, 1)
-        break;
-      }
+    let removeIndex = sessions[this.name].indexOf(path)
+    if (removeIndex !== -1) {
+      sessions[this.name].splice(removeIndex, 1)
     }
     return this
   }
