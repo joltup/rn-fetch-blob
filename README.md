@@ -48,7 +48,7 @@ This project was started in the cause of solving issue [facebook/react-native#85
 
 It is committed to making file access and transfer easier and more efficient for React Native developers. We've implemented highly customizable filesystem and network module which plays well together. For example, developers can upload and download data directly from/to storage, which is more efficient, especially for large files. The file system supports file stream, so you don't have to worry about OOM problem when accessing large files.
 
-In `0.8.0` we introduced experimental Web API polyfills that make it possible to use browser-based libraries in React Native, such as, [FireBase JS SDK](https://github.com/joltup/rn-firebase-storage-upload-sample)
+In `0.8.0` we introduced experimental Web API polyfills that make it possible to use browser-based libraries in React Native, such as, [FireBase JS SDK](https://github.com/wkh237/rn-firebase-storage-upload-sample)
 
 ## Installation
 
@@ -897,7 +897,7 @@ After `0.8.0` we've made some [Web API polyfills](<https://github.com/joltup/rn-
 - Blob
 - XMLHttpRequest (Use our implementation if you're going to use it with Blob)
 
-Here's a [sample app](https://github.com/joltup/rn-firebase-storage-upload-sample) that uses polyfills to upload files to FireBase.
+Here's a [sample app](https://github.com/wkh237/rn-firebase-storage-upload-sample) that uses polyfills to upload files to FireBase.
 
 ## Performance Tips
 
