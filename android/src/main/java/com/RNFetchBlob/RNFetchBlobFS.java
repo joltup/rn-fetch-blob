@@ -760,36 +760,27 @@ class RNFetchBlobFS {
     }
 
     static void lstat(String path, final Callback callback) {
-        path = normalizePath(path);
-
-        new AsyncTask<String, Integer, Integer>() {
-            @Override
-            protected Integer doInBackground(String ...args) {
-                WritableArray res = Arguments.createArray();
-                if(args[0] == null) {
-                    callback.invoke("the path specified for lstat is either `null` or `undefined`.");
-                    return 0;
-                }
-                File src = new File(args[0]);
-                if(!src.exists()) {
-                    callback.invoke("failed to lstat path `" + args[0] + "` because it does not exist or it is not a folder");
-                    return 0;
-                }
-                if(src.isDirectory()) {
-                    String [] files = src.list();
-                    // File => list(): "If this abstract pathname does not denote a directory, then this method returns null."
-                    // We excluded that possibility above - ignore the "can produce NullPointerException" warning of the IDE.
-                    for(String p : files) {
-                        res.pushMap(statFile(src.getPath() + "/" + p));
-                    }
-                }
-                else {
-                    res.pushMap(statFile(src.getAbsolutePath()));
-                }
-                callback.invoke(null, res);
-                return 0;
+        WritableArray res = Arguments.createArray();
+        if(path == null) {
+            callback.invoke("the path specified for lstat is either `null` or `undefined`.");
+        }
+        String normalizePath = normalizePath(path);
+        File src = new File(normalizePath);
+        if(!src.exists()) {
+            callback.invoke("failed to lstat path `" + path + "` because it does not exist or it is not a folder");
+        }
+        if(src.isDirectory()) {
+            String [] files = src.list();
+            // File => list(): "If this abstract pathname does not denote a directory, then this method returns null."
+            // We excluded that possibility above - ignore the "can produce NullPointerException" warning of the IDE.
+            for(String p : files) {
+                res.pushMap(statFile(src.getPath() + "/" + p));
             }
-        }.execute(path);
+        }
+        else {
+            res.pushMap(statFile(src.getAbsolutePath()));
+        }
+        callback.invoke(null, res);
     }
 
     /**
