@@ -52,7 +52,7 @@ static void initialize_tables() {
         
         self.taskQueue = [[NSOperationQueue alloc] init];
         self.taskQueue.qualityOfService = NSQualityOfServiceUtility;
-        self.taskQueue.maxConcurrentOperationCount = 10;
+        self.taskQueue.maxConcurrentOperationCount = 1;
         self.rebindProgressDict = [NSMutableDictionary dictionary];
         self.rebindUploadProgressDict = [NSMutableDictionary dictionary];
     }
