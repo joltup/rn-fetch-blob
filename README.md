@@ -111,7 +111,7 @@ You also might need add the following lines to `AndroidManifest.xml`
 
 For projects < 0.28
 
-React Native has changed OkHttp version in 0.27, if your project is older than 0.28 you have to explicitly specify OkHttp version in `node_modules/rn-fetch-blob/android/build.gradle`
+React Native has changed OkHttp version in 0.27, if your react-native version is lower than 0.28, then you have to explicitly specify OkHttp version in `node_modules/rn-fetch-blob/android/build.gradle`
 
 ```diff
 dependencies {
