@@ -289,6 +289,16 @@ public class RNFetchBlob extends ReactContextBaseJavaModule {
         });
     }
 
+    @ReactMethod
+    public void hashWithKey(final String path, final String algorithm, final String key, final Promise promise) {
+        threadPool.execute(new Runnable() {
+            @Override
+            public void run() {
+                RNFetchBlobFS.hashWithKey(path, algorithm, key, promise);
+            }
+        });
+    }
+
     /**
      * @param path Stream file path
      * @param encoding Stream encoding, should be one of `base64`, `ascii`, and `utf8`

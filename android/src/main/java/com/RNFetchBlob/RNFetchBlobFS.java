@@ -9,7 +9,7 @@ import android.os.Environment;
 import android.os.StatFs;
 import android.os.SystemClock;
 import android.util.Base64;
-
+import android.util.Log;
 import com.RNFetchBlob.Utils.PathResolver;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
@@ -29,6 +29,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 class RNFetchBlobFS {
 
@@ -917,6 +919,44 @@ class RNFetchBlobFS {
             promise.reject("EUNSPECIFIED", e.getLocalizedMessage());
         }
     }
+
+    static void hashWithKey(String path, String algorithm, String key, Promise promise) {
+        try {           
+            File file = new File(path);
+
+            if (file.isDirectory()) {
+                promise.reject("EISDIR", "Expecting a file but '" + path + "' is a directory");
+                return;
+            }
+
+            if (!file.exists()) {
+                promise.reject("ENOENT", "No such file '" + path + "'");
+                return;
+            }            
+
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(), algorithm);            
+            Mac mac = Mac.getInstance(algorithm);
+            mac.init(secretKeySpec);
+            
+            FileInputStream inputStream = new FileInputStream(path);            
+            byte[] buffer = new byte[(int)file.length()];
+            
+            int read;
+            while ((read = inputStream.read(buffer)) != -1) {                                
+                mac.update(buffer, 0, read);
+            }
+           
+            StringBuilder hexString = new StringBuilder();
+            for (byte digestByte : mac.doFinal()){                
+                hexString.append(String.format("%02x", digestByte));
+            }            
+
+            promise.resolve(hexString.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+            promise.reject("EUNSPECIFIED", e.getLocalizedMessage());
+        }
+    }    
 
     /**
      * Create new file at path
