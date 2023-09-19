@@ -9,7 +9,7 @@
   "dependencies": {
     "base-64": "0.1.0",
     "glob": "7.0.6",
-    "lodash": "4.17.15"
+    "lodash": "4.17.21"
   },
   "keywords": [
     "react-native",
