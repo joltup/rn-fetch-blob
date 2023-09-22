@@ -450,10 +450,10 @@ class RNFetchBlobFS {
      * @param callback JS context callback
      */
     static void writeChunk(String streamId, String data, Callback callback) {
-        RNFetchBlobFS fs = fileStreams.get(streamId);
-        OutputStream stream = fs.writeStreamInstance;
-        byte[] chunk = RNFetchBlobFS.stringToBytes(data, fs.encoding);
         try {
+            RNFetchBlobFS fs = fileStreams.get(streamId);
+            OutputStream stream = fs.writeStreamInstance;
+            byte[] chunk = RNFetchBlobFS.stringToBytes(data, fs.encoding);
             stream.write(chunk);
             callback.invoke();
         } catch (Exception e) {
