@@ -496,7 +496,7 @@ RCT_EXPORT_METHOD(readFile:(NSString *)path
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 {
-    
+
     [RNFetchBlobFS readFile:path encoding:encoding onComplete:^(NSData * content, NSString * code, NSString * err) {
         if(err != nil) {
             reject(code, err, nil);
@@ -575,7 +575,7 @@ RCT_EXPORT_METHOD(slice:(NSString *)src dest:(NSString *)dest start:(nonnull NSN
 
 RCT_EXPORT_METHOD(previewDocument:(NSString*)uri scheme:(NSString *)scheme resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
-    NSString * utf8uri = [uri stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+    NSString * utf8uri = [uri stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
     NSURL * url = [[NSURL alloc] initWithString:utf8uri];
     // NSURL * url = [[NSURL alloc] initWithString:uri];
     documentController = [UIDocumentInteractionController interactionControllerWithURL:url];
@@ -596,7 +596,7 @@ RCT_EXPORT_METHOD(previewDocument:(NSString*)uri scheme:(NSString *)scheme resol
 
 RCT_EXPORT_METHOD(openDocument:(NSString*)uri scheme:(NSString *)scheme resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
-    NSString * utf8uri = [uri stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+    NSString * utf8uri = [uri stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
     NSURL * url = [[NSURL alloc] initWithString:utf8uri];
     // NSURL * url = [[NSURL alloc] initWithString:uri];
     documentController = [UIDocumentInteractionController interactionControllerWithURL:url];
