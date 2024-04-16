@@ -13,4 +13,7 @@ Pod::Spec.new do |s|
   s.source_files = 'ios/**/*.{h,m}'
   s.platform     = :ios, "8.0"
   s.dependency 'React-Core'
+  s.resource_bundles = {
+    'RNFetchBlobPrivacyInfo' => ['ios/PrivacyInfo.xcprivacy'],
+  }
 end

@@ -45,6 +45,7 @@
 		A19B48241D98102400E6868A /* RNFetchBlobProgress.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RNFetchBlobProgress.m; sourceTree = "<group>"; };
 		A1AAE2971D300E3E0051D11C /* RNFetchBlobReqBuilder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RNFetchBlobReqBuilder.h; sourceTree = "<group>"; };
 		A1AAE2981D300E4D0051D11C /* RNFetchBlobReqBuilder.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RNFetchBlobReqBuilder.m; sourceTree = "<group>"; };
+		F2CB9E7A2BCE128B003984C2 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,6 +69,7 @@
 		A15C30051CD25C330074CB35 = {
 			isa = PBXGroup;
 			children = (
+				F2CB9E7A2BCE128B003984C2 /* PrivacyInfo.xcprivacy */,
 				A19B48241D98102400E6868A /* RNFetchBlobProgress.m */,
 				A19B48231D98100800E6868A /* RNFetchBlobProgress.h */,
 				A1AAE2981D300E4D0051D11C /* RNFetchBlobReqBuilder.m */,
@@ -134,6 +136,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 			);
 			mainGroup = A15C30051CD25C330074CB35;
