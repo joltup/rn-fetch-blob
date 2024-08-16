@@ -359,6 +359,7 @@ export default class XMLHttpRequest extends XMLHttpRequestEventTarget{
         case 'json':
           this._response = resp.json()
           this._responseText = resp.text()
+          responseDataReady();
         break
         default :
           this._responseText = resp.text()
