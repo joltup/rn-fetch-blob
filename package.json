@@ -109,6 +109,9 @@
             "separateDataTypes": true
         }
     },
+    "swiftpmConfig": {
+        "name": "ReactNativeBlobUtil"
+    },
     "react-native-windows": {
         "init-windows": {
             "name": "ReactNativeBlobUtil",
