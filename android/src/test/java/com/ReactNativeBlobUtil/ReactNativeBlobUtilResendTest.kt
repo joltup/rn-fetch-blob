@@ -2,7 +2,6 @@ package com.ReactNativeBlobUtil
 
 import okhttp3.Call
 import okhttp3.Callback
-import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -31,6 +30,8 @@ import kotlin.concurrent.thread
  * any exception, read timeouts included; retryOnConnectionFailure(true) let OkHttp
  * resend a POST after a pooled connection dropped; and OkHttp follows a 503 with
  * Retry-After: 0. A server that acts on a POST, a payment for one, acted on it twice.
+ * Without that retry, the shared pool must not hand a POST a connection the server
+ * has already closed for being idle.
  *
  * The clients here are wired as ReactNativeBlobUtilReq wires its own, against a
  * local server that counts the requests it reads.
@@ -39,8 +40,14 @@ class ReactNativeBlobUtilResendTest {
 
     private enum class Reply { OK, UNAVAILABLE, CLOSE, HOLD }
 
-    /** An HTTP/1.1 server that answers the nth request on each connection as [reply] says. */
-    private class Server(private val reply: (indexOnConnection: Int) -> Reply) : Closeable {
+    /**
+     * An HTTP/1.1 server that answers the nth request on each connection as [reply]
+     * says, and closes a connection idle for [idleMillis] (0: never).
+     */
+    private class Server(
+        private val idleMillis: Int,
+        private val reply: (indexOnConnection: Int) -> Reply,
+    ) : Closeable {
         private val socket = ServerSocket(0, 50, InetAddress.getLoopbackAddress())
         private val accepted = Collections.synchronizedList(mutableListOf<Socket>())
         private val methods = Collections.synchronizedList(mutableListOf<String>())
@@ -60,6 +67,8 @@ class ReactNativeBlobUtilResendTest {
             }
         }
 
+        val connections get() = accepted.size
+
         /** How many requests with [method] arrived, once a stray resend has had time to. */
         fun received(method: String): Int {
             Thread.sleep(300)
@@ -68,6 +77,7 @@ class ReactNativeBlobUtilResendTest {
 
         private fun serve(client: Socket) = try {
             client.use {
+                client.soTimeout = idleMillis
                 val input = BufferedInputStream(client.getInputStream())
                 var index = 0
                 while (true) {
@@ -108,9 +118,9 @@ class ReactNativeBlobUtilResendTest {
     }
 
     private val servers = mutableListOf<Server>()
-    private val pool = ConnectionPool()
+    private val pool = ReactNativeBlobUtilReq.newConnectionPool()
 
-    private fun server(reply: (Int) -> Reply) = Server(reply).also { servers.add(it) }
+    private fun server(idleMillis: Int = 0, reply: (Int) -> Reply) = Server(idleMillis, reply).also { servers.add(it) }
 
     @After
     fun stop() {
@@ -170,6 +180,30 @@ class ReactNativeBlobUtilResendTest {
         val server = server { Reply.UNAVAILABLE }
         send("GET", server.url).use { assertEquals(503, it.code) }
         assertEquals(2, server.received("GET"))
+    }
+
+    // Node's http server closes a connection after 5s idle by default. OkHttp only
+    // checks a pooled connection before a POST once it has been idle for 10s, so
+    // a POST 7s after the last request went out on the closed connection and
+    // failed, and the server never saw it.
+    @Test
+    fun `a POST 7s after the last request is not sent on a connection the server closed`() {
+        val server = server(idleMillis = 5000) { Reply.OK }
+        send("GET", server.url).use { assertEquals(200, it.code) }
+        Thread.sleep(7000)
+        send("POST", server.url).use { assertEquals(200, it.code) }
+        assertEquals(1, server.received("POST"))
+        assertEquals(2, server.connections)
+    }
+
+    @Test
+    fun `a POST 2s after the last request reuses the connection`() {
+        val server = server(idleMillis = 5000) { Reply.OK }
+        send("GET", server.url).use { assertEquals(200, it.code) }
+        Thread.sleep(2000)
+        send("POST", server.url).use { assertEquals(200, it.code) }
+        assertEquals(1, server.received("POST"))
+        assertEquals(1, server.connections)
     }
 
     // OkHttp rethrows anything but an IOException on its dispatcher thread after

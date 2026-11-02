@@ -1030,7 +1030,7 @@ class ReactNativeBlobUtilReq(
 
         internal val uploadProgressReport = HashMap<String?, ReactNativeBlobUtilProgressConfig>()
 
-        internal val pool = ConnectionPool()
+        internal val pool = newConnectionPool()
 
         @JvmStatic
         fun cancelTask(taskId: String?) {
@@ -1093,6 +1093,19 @@ class ReactNativeBlobUtilReq(
             }
             return ctype.isNotEmpty() && !ctype.contains("text/") && !ctype.contains("application/json")
         }
+
+        /**
+         * The pool every request shares. It keeps an idle connection for 4s instead of
+         * OkHttp's default 5 minutes. OkHttp checks that a pooled connection is still
+         * open before a request other than GET only once it has been idle for 10s, and
+         * [mayResend] no longer lets it send such a request again on a new connection.
+         * A server that closes idle connections after 5s, as Node's http server and
+         * uvicorn do by default, would otherwise get a POST sent 5 to 10s after the
+         * previous request on a connection it had already closed, and the call would
+         * fail with "unexpected end of stream" although the server never saw it (#504).
+         */
+        @JvmStatic
+        internal fun newConnectionPool(): ConnectionPool = ConnectionPool(5, 4, TimeUnit.SECONDS)
 
         /**
          * Whether OkHttp may send a request again after a connection failure, when the
