@@ -420,6 +420,36 @@ final class RequestBuilderPinTests: XCTestCase {
         // masked in the parity signatures. The structure above is the contract.
     }
 
+    private func multipartBody(form: [[String: Any]]) throws -> (body: String, boundary: String) {
+        let (request, _) = try buildMultipart(form: form)
+        let req = try XCTUnwrap(request)
+        let body = try XCTUnwrap(String(data: try XCTUnwrap(req.httpBody), encoding: .utf8))
+        let contentType = try XCTUnwrap(req.value(forHTTPHeaderField: "content-type"))
+        return (body, String(contentType.dropFirst("multipart/form-data; boundary=".count)))
+    }
+
+    /// An empty form read form[0] and trapped, which ends the app in a release
+    /// build too (#197). It sends the closing delimiter alone, as Android does.
+    func testMultipartWithAnEmptyFormSendsOnlyTheClosingDelimiter() throws {
+        let (body, boundary) = try multipartBody(form: [])
+        XCTAssertEqual(body, "--\(boundary)--\r\n")
+    }
+
+    /// A field without `name` or `data` is skipped. Skipping the last field
+    /// stepped past the end of the form without a bounds check and trapped.
+    func testMultipartSkipsALastFieldWithoutANameOrData() throws {
+        for orphan: [String: Any] in [["data": "no name"], ["name": "no data"]] {
+            let (body, boundary) = try multipartBody(form: [["name": "field", "data": "value"], orphan])
+            XCTAssertEqual(body, [
+                "--\(boundary)\r\n",
+                "Content-Disposition: form-data; name=\"field\"\r\n",
+                "Content-Type: text/plain\r\n\r\n",
+                "value\r\n",
+                "--\(boundary)--\r\n",
+            ].joined(), "\(orphan)")
+        }
+    }
+
     // MARK: - the TLS trust decision
 
     /// The trust decision is an instance method on the request, driven by its

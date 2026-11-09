@@ -74,7 +74,9 @@ public class ReactNativeBlobUtilReqBuilder: NSObject {
         guard let form = form else { return onComplete(nil, false) }
 
         var formData = Data()
-        var index = 0
+        // Before the first field: the walk starts with advance(), which checks
+        // the bound. Starting at form[0] trapped on an empty form (#197).
+        var index = -1
         let count = form.count
 
         func append(_ string: String) {
@@ -96,14 +98,12 @@ public class ReactNativeBlobUtilReqBuilder: NSObject {
             let content = field["data"] as? String
             var contentType = field["type"] as? String
 
-            // A field missing `name` or `data` is skipped - and the original
-            // stepped to the next index without checking the bound first, so a
-            // form whose last field is like this raises NSRangeException. Kept:
-            // the crash is the behaviour, and it is on the P5 list.
+            // A field missing `name` or `data` is skipped. The skip used to step
+            // to the next index without checking the bound, so a form whose last
+            // field was like this trapped; advance() checks it (#197).
             if content == nil || name == nil {
-                index += 1
                 ReactNativeBlobUtilLog.warn("ReactNativeBlobUtil multipart request builder has found a field without `data` or `name` property, the field will be removed implicitly.")
-                handle(form[index])
+                advance()
                 return
             }
 
@@ -163,7 +163,7 @@ public class ReactNativeBlobUtilReqBuilder: NSObject {
             advance()
         }
 
-        handle(form[index])
+        advance()
     }
 
     // MARK: - octet
