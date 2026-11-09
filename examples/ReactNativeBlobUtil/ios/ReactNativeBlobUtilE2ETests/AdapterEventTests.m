@@ -91,14 +91,6 @@ static NSMutableArray *RecordedBodies = nil;
 
 #pragma mark - The controller the document menus present from
 
-/// An app delegate without a `window`, as in React Native 0.88's template, which
-/// keeps the window on a scene delegate.
-@interface RNBUWindowlessAppDelegate : UIResponder <UIApplicationDelegate>
-@end
-
-@implementation RNBUWindowlessAppDelegate
-@end
-
 @interface AdapterPresentingTests : XCTestCase
 @property (nonatomic, strong) id adapter;
 @end
@@ -115,20 +107,37 @@ static NSMutableArray *RecordedBodies = nil;
 }
 
 /// The provider sent `window` to the app delegate, so with the UIScene life
-/// cycle the first menu ended the app: "-[AppDelegate window]: unrecognized
-/// selector sent to instance" (#498).
+/// cycle, whose app delegate has no `window`, the first menu ended the app:
+/// "-[AppDelegate window]: unrecognized selector sent to instance" (#498).
+///
+/// The host's delegate does have one, so the test counts the calls to it
+/// rather than swapping in a delegate without it: UIApplication does not retain
+/// its delegate, and a stub freed after the test left UIKit's responder chain
+/// pointing at it, which crashed whichever test ran next.
 - (void)testTheProviderDoesNotAskTheAppDelegateForAWindow {
     UIViewController * _Nullable (^provider)(void) = [self provider];
-    UIApplication *app = UIApplication.sharedApplication;
-    id<UIApplicationDelegate> original = app.delegate;
-    RNBUWindowlessAppDelegate *windowless = [RNBUWindowlessAppDelegate new];
-    app.delegate = windowless;
-    @try {
+    id<UIApplicationDelegate> delegate = UIApplication.sharedApplication.delegate;
+    Method method = class_getInstanceMethod([delegate class], @selector(window));
+    if (method == NULL) {
+        // A host whose delegate has no window is the case itself.
         XCTAssertNoThrow(provider());
+        return;
+    }
+
+    __block NSUInteger asked = 0;
+    IMP original = method_getImplementation(method);
+    IMP counting = imp_implementationWithBlock(^UIWindow *(id self_) {
+        asked += 1;
+        return ((UIWindow * (*)(id, SEL))original)(self_, @selector(window));
+    });
+    method_setImplementation(method, counting);
+    @try {
+        provider();
     }
     @finally {
-        app.delegate = original;
+        method_setImplementation(method, original);
     }
+    XCTAssertEqual(asked, 0UL, @"the provider asked the app delegate for its window");
 }
 
 /// The menus present from the controller on top. The provider returned the
