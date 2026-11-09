@@ -186,6 +186,7 @@ Where the platforms disagreed, 1.0 picks one behaviour:
 | `android.actionViewIntent` | resolved `true`, then `null` again on resume | settles once; resolves `undefined`, like `open.file` it forwards to |
 | A response header sent more than once (`Set-Cookie`, say) on Android | only the last value reached `res.headers` and `res.info().headers` | every value, joined with `, ` as on iOS (1.1.1) |
 | `open.chooser` (and `android.actionViewIntent` with a `chooserTitle`) on Android | rejected `EUNSPECIFIED` every time: the chooser was started without `FLAG_ACTIVITY_NEW_TASK` | opens the chooser (1.1.1) |
+| `timeout` on Android | bounded connecting and reading only, so an upload whose body the server stopped reading never ended | also bounds each write, as on iOS (1.1.1) |
 | `respInfo.respType` on Android | `""` for every text response (a broken header check) | `text`, `json` or `blob` by Content-Type, as on iOS |
 | `config({auto: true})` on Android | wrote only a type listed in `binaryContentTypes` to a file (the same broken check) | writes every response that is not `text/*` or `application/json` to a file, as on iOS (1.1.0) |
 | `android: {downloadManager}` without `useDownloadManager` and without a `title` or `description` (Android) | ended the app: DownloadManager refused the empty title, on OkHttp's thread | lists the file in the Downloads app under its name; if that fails, a warning, and the request still resolves (1.1.1) |
