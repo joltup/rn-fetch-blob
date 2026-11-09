@@ -72,6 +72,16 @@ test('the product is the name React Native autolinks this module under', () => {
     assert.match(manifest, /\.library\(\s*\n?\s*name: "ReactNativeBlobUtil"/);
 });
 
+test('package.json gives React Native the product name the manifest declares', () => {
+    // Without swiftpmConfig.name, React Native 0.88 names the product after the
+    // podspec, which is the npm name react-native-blob-util, and resolving the
+    // app's packages fails: "product 'react-native-blob-util' ... not found" (#507).
+    const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+    const product = manifest.match(/\.library\(\s*name: "([^"]+)"/);
+    assert.ok(product, 'Package.swift declares no library product');
+    assert.equal(pkg.swiftpmConfig?.name, product[1]);
+});
+
 test('every source the manifest lists exists on disk', () => {
     for (const name of [LEAF, CORE, ADAPTER]) {
         const dir = targetPath(name);
