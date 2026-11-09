@@ -174,6 +174,13 @@ public class ReactNativeBlobUtilModuleCore: NSObject, UIDocumentInteractionContr
         if fm.fileExists(atPath: path) {
             return reject("EEXIST", "File '\(path)' already exists", nil)
         }
+        // Data that does not decode was a nil body, and a nil body creates an
+        // empty file - so the call resolved while the file held none of what
+        // was asked for. writeFile rejects the same data. Checked after EEXIST,
+        // which an existing file has always reported first.
+        if encoding.lowercased() == "base64" && content == nil {
+            return reject("EINVAL", "Data for '\(path)' is not valid base64", nil)
+        }
         if fm.createFile(atPath: path, contents: content) {
             // Resolves an array holding null, not null. Preserved.
             resolve([NSNull()])

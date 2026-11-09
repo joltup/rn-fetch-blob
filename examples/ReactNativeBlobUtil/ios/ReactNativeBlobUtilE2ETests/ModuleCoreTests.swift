@@ -249,6 +249,41 @@ final class ModuleCoreTests: XCTestCase {
         XCTAssertEqual(error.code, "ENOENT")
     }
 
+    /// Data that does not decode was a nil body, and creating a file with a nil
+    /// body makes an empty one: the call resolved, and the file held none of
+    /// what was asked for. writeFile rejects the same data with EINVAL.
+    func testCreateFileFromInvalidBase64RejectsEINVAL() throws {
+        for (name, data) in [("symbols.bin", "@@@@"), ("data-url.png", "data:image/png;base64,iVBORw0KGgo=")] {
+            let path = "\(dir)/\(name)"
+            let error = try XCTUnwrap(rejection(try settle { r, j in
+                self.core.createFile(path, data: data, encoding: "base64", resolve: r, reject: j)
+            }), "createFile from \(data) should reject")
+            XCTAssertEqual(error.code, "EINVAL", data)
+            XCTAssertEqual(error.message, "Data for '\(path)' is not valid base64", data)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: path), "and no empty file is left behind")
+        }
+    }
+
+    /// An existing file still reports EEXIST first, as it did before the data
+    /// was checked, and keeps its contents.
+    func testCreateFileOntoAnExistingFileWithInvalidBase64RejectsEEXIST() throws {
+        let path = "\(dir)/existing.bin"
+        try "kept".write(toFile: path, atomically: true, encoding: .utf8)
+        let error = try XCTUnwrap(rejection(try settle { r, j in
+            self.core.createFile(path, data: "@@@@", encoding: "base64", resolve: r, reject: j)
+        }))
+        XCTAssertEqual(error.code, "EEXIST")
+        XCTAssertEqual(try String(contentsOfFile: path, encoding: .utf8), "kept")
+    }
+
+    func testCreateFileFromBase64WritesTheDecodedBytes() throws {
+        let path = "\(dir)/bytes.bin"
+        guard case .resolved = try settle({ r, j in
+            self.core.createFile(path, data: "AAEC/w==", encoding: "base64", resolve: r, reject: j)
+        }) else { return XCTFail("createFile from valid base64 should resolve") }
+        XCTAssertEqual(FileManager.default.contents(atPath: path), Data([0x00, 0x01, 0x02, 0xff]))
+    }
+
     // Copying onto an existing destination used to reject EUNSPECIFIED. 1.0
     // overwrites instead, so the pin moved to BehaviourAlignmentTests with the
     // rest of the aligned behaviour; the two rejections above still hold,
