@@ -52,7 +52,8 @@ const handleUpload = async (req, res, label) => {
             sha256: hash,
         });
     } catch (err) {
-        sendJson(res, 500, { ok: false, error: String(err?.message || err) });
+        // The message only: a thrown value that is not an Error could carry a stack.
+        sendJson(res, 500, { ok: false, error: err instanceof Error ? err.message : "upload could not be read" });
     }
 };
 
