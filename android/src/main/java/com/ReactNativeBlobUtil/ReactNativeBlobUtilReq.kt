@@ -558,18 +558,7 @@ class ReactNativeBlobUtilReq(
             clientBuilder.addInterceptor(Interceptor { chain -> wrapResponseBody(chain, req) })
 
 
-            if (options.timeout >= 0) {
-                clientBuilder.connectTimeout(options.timeout, TimeUnit.MILLISECONDS)
-            }
-            // For file-to-disk downloads use no read timeout: the 60-second default
-            // can fire on slow connections before a large file finishes transferring.
-            // Individual socket reads on a healthy connection take milliseconds, so
-            // there is no risk of hanging indefinitely; the user can always cancel().
-            if (responseType == ResponseType.FileStorage) {
-                clientBuilder.readTimeout(0, TimeUnit.MILLISECONDS)
-            } else if (options.timeout >= 0) {
-                clientBuilder.readTimeout(options.timeout, TimeUnit.MILLISECONDS)
-            }
+            applyTimeouts(clientBuilder, options.timeout, responseType == ResponseType.FileStorage)
 
             clientBuilder.connectionPool(pool)
             clientBuilder.followRedirects(options.followRedirect!!)
@@ -1106,6 +1095,30 @@ class ReactNativeBlobUtilReq(
          */
         @JvmStatic
         internal fun newConnectionPool(): ConnectionPool = ConnectionPool(5, 4, TimeUnit.SECONDS)
+
+        /**
+         * Applies the `timeout` option, in milliseconds; a negative one leaves the
+         * base client's timeouts. It bounds connecting and each write, so an upload
+         * whose body the server stops reading fails with ETIMEDOUT. The write timeout
+         * used to be left alone, and React Native's base client has none, so such an
+         * upload hung for good (#384). It bounds each read too, except for a download
+         * to a file: the 60-second default fired on slow connections before a large
+         * file finished, so a file download has no read timeout and cancel() ends one
+         * that stalls.
+         */
+        @JvmStatic
+        internal fun applyTimeouts(builder: OkHttpClient.Builder, timeout: Long, toFile: Boolean): OkHttpClient.Builder {
+            if (timeout >= 0) {
+                builder.connectTimeout(timeout, TimeUnit.MILLISECONDS)
+                builder.writeTimeout(timeout, TimeUnit.MILLISECONDS)
+            }
+            if (toFile) {
+                builder.readTimeout(0, TimeUnit.MILLISECONDS)
+            } else if (timeout >= 0) {
+                builder.readTimeout(timeout, TimeUnit.MILLISECONDS)
+            }
+            return builder
+        }
 
         /**
          * Whether OkHttp may send a request again after a connection failure, when the
