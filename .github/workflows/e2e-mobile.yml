@@ -87,6 +87,10 @@ on:
         default: "iPhone 15"
         type: string
 
+# Every job only reads the repository: nothing here writes through the token.
+permissions:
+  contents: read
+
 jobs:
   android:
     name: Android E2E

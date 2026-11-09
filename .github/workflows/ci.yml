@@ -14,6 +14,10 @@ on:
       - 'feature/**'
   workflow_dispatch:
 
+# Every job only reads the repository: nothing here writes through the token.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
