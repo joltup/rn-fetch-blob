@@ -20,7 +20,7 @@ Most apps only need to meet the new requirements below and check the removed API
 | Android build | Java 8 bytecode | Java 17 bytecode, Kotlin compiled with the app's Kotlin setup |
 | iOS deployment target | 11.0 | 15.1 |
 | Xcode | | 16.1 or newer |
-| iOS integration | CocoaPods or the bundled Xcode project | CocoaPods, or SwiftPM autolinking on React Native 0.87 and newer (1.1.0) |
+| iOS integration | CocoaPods or the bundled Xcode project | CocoaPods, or SwiftPM autolinking on React Native 0.87 and newer (1.1.0; on 0.88 from 1.1.1) |
 
 If your app still runs on the Old Architecture, stay on 0.25 until it moves to the New
 Architecture.
@@ -177,6 +177,7 @@ Where the platforms disagreed, 1.0 picks one behaviour:
 | `fs.readFile` utf8 of invalid bytes | U+FFFD (Android), null (iOS) | U+FFFD |
 | utf8 `readStream` with a character split across chunks | ok (Android), error (iOS) | ok |
 | `fs.createFile(path, src, 'uri')` with a missing source | ENOENT (Android), empty file (iOS) | ENOENT |
+| `fs.createFile(path, data, 'base64')` with data that is not base64 (a `data:` URL, say) | EINVAL (Android, Windows), an empty file (iOS) | EINVAL (1.1.1) |
 | `fs.hash` / `fs.slice` on a missing file | EUNSPECIFIED (Android), ENOENT (iOS) | ENOENT |
 | `fs.mkdir` on an existing directory | EEXIST (Android, iOS), resolved (Windows) | EEXIST |
 | `fs.ls` on a missing path | ENOENT (Android, iOS), ENOTDIR (Windows) | ENOENT |
@@ -188,6 +189,7 @@ Where the platforms disagreed, 1.0 picks one behaviour:
 | An upload on Android whose source cannot be read (a revoked `content://` URI, a missing asset, a read error mid-way) | sent an empty or cut-off body, and either resolved or failed with "unexpected end of stream" | rejects with the source's own error (`EUNSPECIFIED`) |
 | `appendExt` containing `/`, `\`, `:` or a control character (GHSA-5xf6-f6v8-jc8c) | appended to the generated cache file name as it was, so `"/../../shared_prefs/x.xml"` wrote the download over any file the app can write | rejects `EINVAL` on every platform; an extension such as `png`, `tar.gz` or `.jpg` is unaffected |
 | A header name or value containing CR, LF or NUL | sent as it was: rejected by OkHttp on Android, and on Windows it started a new header on the wire | rejects `EINVAL` before the request starts, on every platform |
+| A header value that is not a string (an object, an array, a number, a boolean) | crashed the app on Android ("cannot be cast ... to String"), was dropped on iOS and sent as text on Windows (an object as `""`); `0` and `false` were sent as `""` | rejects `EINVAL` before the request starts, on every platform; `null` and `undefined` are still sent as `""` (1.1.1). Pass `String(value)` for a number |
 | A multipart `name` or `filename` containing `"`, CR or LF | pasted into the part header unescaped (Android, iOS), so it could rewrite the part's headers | escaped as browsers do: `%22`, `%0D`, `%0A`; a `type` with CR or LF rejects `EINVAL` |
 | `pinnedHosts` written with capitals | never matched (hosts are compared as the HTTP stack reports them, in lower case), so the request used system trust | matched case-insensitively |
 | `res.text()` / `res.json()` of a `fileCache`/`path` or base64 response | decoded one character per byte, so `é` came back as `Ã©`; `res.base64()` of a text body threw on characters beyond Latin-1 | UTF-8 on every platform, a leading byte order mark dropped (as fetch does), an embedded NUL kept on iOS too |
@@ -335,6 +337,27 @@ forged Downloads URI read and deleted a file in your app's data directory.
   file with `fs.cp(uri, path)` first.
 - `com.ReactNativeBlobUtil.Utils.PathResolver` is gone.
 
+### A failed request is not sent again (Android, 1.1.1)
+
+A request that failed after the server may already have received it could go out a
+second time without the app knowing, so a POST that changes state (a payment, an
+order) was acted on twice (#504). Three paths did it, and all three are closed:
+
+- After any failure, a read timeout from `timeout` included, the library proceeded
+  with the request again. It now fails once: a timeout rejects `ETIMEDOUT` as before,
+  without a second attempt behind it.
+- OkHttp's `retryOnConnectionFailure` was on for every request. It stays on only for
+  `GET` and `HEAD`. Other methods lose OkHttp's silent recovery from a failure before
+  the request went out (another route, a refused HTTP/2 stream, a pooled connection
+  the server had closed); those reject now, and the server never saw the request.
+- OkHttp resends after a `503` with `Retry-After: 0`. For methods other than `GET` and
+  `HEAD` that header is dropped from the response, so it no longer reaches JS either.
+
+Idle connections stay in the library's pool for 4 seconds instead of 5 minutes, so a
+POST no longer goes out on a connection a server that closes idle ones after 5 seconds
+(Node's default) has already closed. `respInfo.timeout` on a response is always
+`false`; it was only ever `true` after a resend that succeeded.
+
 ### TLS and other hardening (Android)
 
 - `trusty: true` keeps hostname verification. It used to install an accept-all
@@ -390,6 +413,11 @@ Apps that follow the README don't need to change anything.
   `ReactNativeBlobUtilExceptionCatch.h`. The other headers, including
   `ReactNativeBlobUtilConst.h`, are gone: those classes are Swift now. App code that
   imported them has to stop, and apps had no documented reason to.
+- The document menus (`open.file`, `open.chooser`, `open.optionsMenu` and the iOS aliases)
+  present from the view controller on top, found through the key window's scene
+  (1.1.1). With the UIScene life cycle, which React Native 0.88's template uses and
+  apps need once they build with the iOS 27 SDK, the first menu crashed the app; over a
+  modal screen a menu did nothing.
 - `ios/ReactNativeBlobUtil.xcodeproj` is deleted. It no longer matched the sources, so
   linking the library through that project stopped working long ago. Use CocoaPods.
 
