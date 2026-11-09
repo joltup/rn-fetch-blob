@@ -41,7 +41,6 @@ import java.io.IOException
 import java.net.InetAddress
 import java.net.MalformedURLException
 import java.net.Proxy
-import java.net.SocketException
 import java.net.SocketTimeoutException
 import java.net.URL
 import java.net.UnknownHostException
@@ -100,7 +99,6 @@ class ReactNativeBlobUtilReq(
     private val responseType: ResponseType
     private var responseFormat = ResponseFormat.Auto
     private var respInfo: WritableMap? = null
-    private var timeout = false
     // The file-writing body this request creates. An application interceptor outside this
     // request's own can wrap it again, so the response's top-level body is not necessarily it.
     private var fileResponse: ReactNativeBlobUtilFileResp? = null
@@ -554,7 +552,7 @@ class ReactNativeBlobUtilReq(
             val req = builder.build()
             clientBuilder.addNetworkInterceptor(Interceptor { chain ->
                 redirects.add(chain.request().url.toString())
-                chain.proceed(chain.request())
+                withoutRetryAfter(chain.proceed(chain.request()))
             })
             // Add request interceptor for upload progress event
             clientBuilder.addInterceptor(Interceptor { chain -> wrapResponseBody(chain, req) })
@@ -574,10 +572,9 @@ class ReactNativeBlobUtilReq(
             }
 
             clientBuilder.connectionPool(pool)
-            clientBuilder.retryOnConnectionFailure(false)
             clientBuilder.followRedirects(options.followRedirect!!)
             clientBuilder.followSslRedirects(options.followRedirect!!)
-            clientBuilder.retryOnConnectionFailure(true)
+            clientBuilder.retryOnConnectionFailure(mayResend(method))
 
             val httpClient = enableTls12OnPreLollipop(clientBuilder).build()
 
@@ -644,11 +641,8 @@ class ReactNativeBlobUtilReq(
      * and, for file storage, writes to disk.
      */
     @Throws(IOException::class)
-    private fun wrapResponseBody(chain: Interceptor.Chain, req: Request): Response {
-        var originalResponse: Response? = null
-        try {
-            val response = chain.proceed(req)
-            originalResponse = response
+    private fun wrapResponseBody(chain: Interceptor.Chain, req: Request): Response =
+        proceedOnce(chain, req) { response ->
             val extended: ResponseBody = when (responseType) {
                 ResponseType.KeepInMemory -> ReactNativeBlobUtilDefaultResp(
                     ReactNativeBlobUtilImpl.RCTContext,
@@ -664,20 +658,8 @@ class ReactNativeBlobUtilReq(
                     options.overwrite!!,
                 ).also { fileResponse = it }
             }
-            return response.newBuilder().body(extended).build()
-        } catch (e: SocketException) {
-            timeout = true
-            originalResponse?.close()
-        } catch (e: SocketTimeoutException) {
-            timeout = true
-            originalResponse?.close()
-            //ReactNativeBlobUtilUtils.emitWarningEvent("ReactNativeBlobUtil error when sending request : " + e.getLocalizedMessage());
-        } catch (ex: Exception) {
-            originalResponse?.close()
+            response.newBuilder().body(extended).build()
         }
-
-        return chain.proceed(chain.request())
-    }
 
     /**
      * Remove cached information of the HTTP task
@@ -846,7 +828,8 @@ class ReactNativeBlobUtilReq(
         info.putInt("status", resp.code)
         info.putString("state", "2")
         info.putString("taskId", taskId)
-        info.putBoolean("timeout", timeout)
+        // A request that times out fails with ETIMEDOUT and never gets here.
+        info.putBoolean("timeout", false)
         val headerMap = Arguments.createMap()
         for (i in 0 until resp.headers.size) {
             headerMap.putString(resp.headers.name(i), resp.headers.value(i))
@@ -1047,7 +1030,7 @@ class ReactNativeBlobUtilReq(
 
         internal val uploadProgressReport = HashMap<String?, ReactNativeBlobUtilProgressConfig>()
 
-        internal val pool = ConnectionPool()
+        internal val pool = newConnectionPool()
 
         @JvmStatic
         fun cancelTask(taskId: String?) {
@@ -1110,6 +1093,70 @@ class ReactNativeBlobUtilReq(
             }
             return ctype.isNotEmpty() && !ctype.contains("text/") && !ctype.contains("application/json")
         }
+
+        /**
+         * The pool every request shares. It keeps an idle connection for 4s instead of
+         * OkHttp's default 5 minutes. OkHttp checks that a pooled connection is still
+         * open before a request other than GET only once it has been idle for 10s, and
+         * [mayResend] no longer lets it send such a request again on a new connection.
+         * A server that closes idle connections after 5s, as Node's http server and
+         * uvicorn do by default, would otherwise get a POST sent 5 to 10s after the
+         * previous request on a connection it had already closed, and the call would
+         * fail with "unexpected end of stream" although the server never saw it (#504).
+         */
+        @JvmStatic
+        internal fun newConnectionPool(): ConnectionPool = ConnectionPool(5, 4, TimeUnit.SECONDS)
+
+        /**
+         * Whether OkHttp may send a request again after a connection failure, when the
+         * server may already have received it. Only GET and HEAD: OkHttp resends after a
+         * reset or "unexpected end of stream" on a pooled connection even once the body
+         * was sent, and a POST the server acted on would be acted on twice (#504). Other
+         * methods also lose OkHttp's recovery from failures before the request went out
+         * (next route, refused HTTP/2 stream, stale pooled socket); those now fail, and
+         * the server never saw the request.
+         */
+        @JvmStatic
+        internal fun mayResend(method: String): Boolean =
+            method.equals("GET", ignoreCase = true) || method.equals("HEAD", ignoreCase = true)
+
+        /**
+         * Proceeds with [request] once and passes the response to [wrap]. A failure is
+         * rethrown for OkHttp to report through onFailure. The interceptor used to catch
+         * it, a read timeout included, and proceed again, so the request went out a
+         * second time after the JS side had already seen it fail (#504). Anything other
+         * than an IOException is wrapped in one: OkHttp rethrows other exceptions on its
+         * dispatcher thread after onFailure, which crashes the app.
+         */
+        @JvmStatic
+        @Throws(IOException::class)
+        internal fun proceedOnce(chain: Interceptor.Chain, request: Request, wrap: (Response) -> Response): Response {
+            var response: Response? = null
+            try {
+                response = chain.proceed(request)
+                return wrap(response)
+            } catch (e: IOException) {
+                response?.close()
+                throw e
+            } catch (e: Exception) {
+                response?.close()
+                throw IOException(e)
+            }
+        }
+
+        /**
+         * OkHttp sends a request again after a 503 with Retry-After: 0, whatever
+         * retryOnConnectionFailure says, and does not without the header. For a method
+         * [mayResend] refuses, the network interceptor drops the header (#504), so it
+         * does not reach JS either.
+         */
+        @JvmStatic
+        internal fun withoutRetryAfter(response: Response): Response =
+            if (response.code == 503 && !mayResend(response.request.method)) {
+                response.newBuilder().removeHeader("Retry-After").build()
+            } else {
+                response
+            }
 
         /**
          * Enabled TLS 1.2 on Android 4.1 to 4.4 (API 16 to 19). The library's minSdk is 24,
