@@ -178,7 +178,7 @@ Where the platforms disagreed, 1.0 picks one behaviour:
 | utf8 `readStream` with a character split across chunks | ok (Android), error (iOS) | ok |
 | `fs.createFile(path, src, 'uri')` with a missing source | ENOENT (Android), empty file (iOS) | ENOENT |
 | `fs.createFile(path, data, 'base64')` with data that is not base64 (a `data:` URL, say) | EINVAL (Android, Windows), an empty file (iOS) | EINVAL (1.1.1) |
-| `fs.lstat` / `fs.ls` on a folder that cannot be read (Android) | `lstat` ended the app; `ls` rejected with a NullPointerException's message | rejects `EACCES` (1.1.1) |
+| `fs.ls` on a folder that cannot be read (Android) | rejected `EUNSPECIFIED` with a NullPointerException's message | rejects `EACCES` (1.1.1) |
 | `fs.hash` / `fs.slice` on a missing file | EUNSPECIFIED (Android), ENOENT (iOS) | ENOENT |
 | `fs.mkdir` on an existing directory | EEXIST (Android, iOS), resolved (Windows) | EEXIST |
 | `fs.ls` on a missing path | ENOENT (Android, iOS), ENOTDIR (Windows) | ENOENT |
@@ -186,16 +186,13 @@ Where the platforms disagreed, 1.0 picks one behaviour:
 | `android.getContentIntent` when the user cancels | never settled | resolves `null`; a second call while the picker is open rejects `EBUSY` |
 | `android.actionViewIntent` | resolved `true`, then `null` again on resume | settles once; resolves `undefined`, like `open.file` it forwards to |
 | A response header sent more than once (`Set-Cookie`, say) on Android | only the last value reached `res.headers` and `res.info().headers` | every value, joined with `, ` as on iOS (1.1.1) |
-| `open.chooser` (and `android.actionViewIntent` with a `chooserTitle`) on Android | rejected `EUNSPECIFIED` every time: the chooser was started without `FLAG_ACTIVITY_NEW_TASK` | opens the chooser (1.1.1) |
 | `timeout` on Android | bounded connecting and reading only, so an upload whose body the server stopped reading never ended | also bounds each write, as on iOS (1.1.1) |
 | `respInfo.respType` on Android | `""` for every text response (a broken header check) | `text`, `json` or `blob` by Content-Type, as on iOS |
 | `config({auto: true})` on Android | wrote only a type listed in `binaryContentTypes` to a file (the same broken check) | writes every response that is not `text/*` or `application/json` to a file, as on iOS (1.1.0) |
-| `android: {downloadManager}` without `useDownloadManager` and without a `title` or `description` (Android) | ended the app: DownloadManager refused the empty title, on OkHttp's thread | lists the file in the Downloads app under its name; if that fails, a warning, and the request still resolves (1.1.1) |
 | An upload on Android whose source cannot be read (a revoked `content://` URI, a missing asset, a read error mid-way) | sent an empty or cut-off body, and either resolved or failed with "unexpected end of stream" | rejects with the source's own error (`EUNSPECIFIED`) |
 | `appendExt` containing `/`, `\`, `:` or a control character (GHSA-5xf6-f6v8-jc8c) | appended to the generated cache file name as it was, so `"/../../shared_prefs/x.xml"` wrote the download over any file the app can write | rejects `EINVAL` on every platform; an extension such as `png`, `tar.gz` or `.jpg` is unaffected |
 | A header name or value containing CR, LF or NUL | sent as it was: rejected by OkHttp on Android, and on Windows it started a new header on the wire | rejects `EINVAL` before the request starts, on every platform |
 | A header value that is not a string (an object, an array, a number, a boolean) | crashed the app on Android ("cannot be cast ... to String"), was dropped on iOS and sent as text on Windows (an object as `""`); `0` and `false` were sent as `""` | rejects `EINVAL` before the request starts, on every platform; `null` and `undefined` are still sent as `""` (1.1.1). Pass `String(value)` for a number |
-| A multipart form that is empty, or whose last field has no `name` or `data` | crashed the app on iOS (an out-of-bounds read, in release builds too) | sends the fields it has, as on Android; an empty form sends the closing delimiter alone (1.1.1) |
 | A file body or multipart file given as a `file://` URL (`wrap('file:///…')`, `{file: 'file:///…'}`) | iOS multipart failed ("failed to create request body"), Windows sent an empty part, Android kept `%20` in the name | the URL's decoded path, on every platform (1.1.1) |
 | `headers` that are not an object (a body passed in their place) | one header per character; a long string threw from `fetch` itself on Hermes | rejects `EINVAL` before the request starts (1.1.1) |
 | A multipart `name` or `filename` containing `"`, CR or LF | pasted into the part header unescaped (Android, iOS), so it could rewrite the part's headers | escaped as browsers do: `%22`, `%0D`, `%0A`; a `type` with CR or LF rejects `EINVAL` |
@@ -421,11 +418,6 @@ Apps that follow the README don't need to change anything.
   `ReactNativeBlobUtilExceptionCatch.h`. The other headers, including
   `ReactNativeBlobUtilConst.h`, are gone: those classes are Swift now. App code that
   imported them has to stop, and apps had no documented reason to.
-- The document menus (`open.file`, `open.chooser`, `open.optionsMenu` and the iOS aliases)
-  present from the view controller on top, found through the key window's scene
-  (1.1.1). With the UIScene life cycle, which React Native 0.88's template uses and
-  apps need once they build with the iOS 27 SDK, the first menu crashed the app; over a
-  modal screen a menu did nothing.
 - `ios/ReactNativeBlobUtil.xcodeproj` is deleted. It no longer matched the sources, so
   linking the library through that project stopped working long ago. Use CocoaPods.
 
