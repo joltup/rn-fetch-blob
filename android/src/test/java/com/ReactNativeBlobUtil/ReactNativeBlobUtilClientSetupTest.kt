@@ -1,5 +1,6 @@
 package com.ReactNativeBlobUtil
 
+import com.ReactNativeBlobUtil.ReactNativeBlobUtilReq.Companion.CompletedDownload
 import okhttp3.Headers.Companion.headersOf
 import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
@@ -58,5 +59,35 @@ class ReactNativeBlobUtilClientSetupTest {
     fun `names that differ only in case are one header`() {
         val fields = ReactNativeBlobUtilReq.headerFields(headersOf("X-Id", "1", "x-id", "2"))
         assertEquals(mapOf("X-Id" to "1, 2"), fields)
+    }
+
+    // addAndroidDownloads without the DownloadManager lists the finished file in the
+    // Downloads app. Title and description defaulted to "", which
+    // DownloadManager.addCompletedDownload refuses with IllegalArgumentException, thrown
+    // on OkHttp's thread: the app ended (#390).
+    @Test
+    fun `a Downloads entry without a title or description is named after the file`() {
+        assertEquals(
+            CompletedDownload("report.pdf", "report.pdf", "text/plain", "/data/files/report.pdf"),
+            ReactNativeBlobUtilReq.completedDownload("", "", "text/plain", "/data/files/report.pdf"),
+        )
+        assertEquals(
+            CompletedDownload("Report", "Report", "text/plain", "/data/files/report.pdf"),
+            ReactNativeBlobUtilReq.completedDownload("Report", null, null, "/data/files/report.pdf"),
+        )
+    }
+
+    @Test
+    fun `a Downloads entry keeps what the config gives`() {
+        assertEquals(
+            CompletedDownload("Report", "Monthly", "application/pdf", "/data/files/report.pdf"),
+            ReactNativeBlobUtilReq.completedDownload("Report", "Monthly", "application/pdf", "/data/files/report.pdf"),
+        )
+    }
+
+    @Test
+    fun `a response held in memory gets no Downloads entry`() {
+        assertEquals(null, ReactNativeBlobUtilReq.completedDownload("Report", "Monthly", "text/plain", null))
+        assertEquals(null, ReactNativeBlobUtilReq.completedDownload("Report", "Monthly", "text/plain", ""))
     }
 }

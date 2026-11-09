@@ -607,9 +607,18 @@ class ReactNativeBlobUtilReq(
                             scannable = notifyConfig.getBoolean("mediaScannable")
                         if (notifyConfig.hasKey("notification"))
                             notification = notifyConfig.getBoolean("notification")
-                        val dm = ReactNativeBlobUtilImpl.RCTContext.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                        @Suppress("DEPRECATION")
-                        dm.addCompletedDownload(title, desc, scannable, mime, destPath, contentLength, notification)
+                        val download = completedDownload(title, desc, mime, destPath)
+                        if (download != null) {
+                            try {
+                                val dm = ReactNativeBlobUtilImpl.RCTContext.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                                @Suppress("DEPRECATION")
+                                dm.addCompletedDownload(download.title, download.description, scannable, download.mime, download.path, contentLength, notification)
+                            } catch (e: Exception) {
+                                // Only the entry in the Downloads app failed; the response itself is fine.
+                                // Thrown here, on OkHttp's thread, it ended the app (#390).
+                                ReactNativeBlobUtilUtils.emitWarningEvent("ReactNativeBlobUtil could not add the download to the Downloads app: " + e.message)
+                            }
+                        }
                     }
 
                     done(response)
@@ -1129,6 +1138,30 @@ class ReactNativeBlobUtilReq(
         @JvmStatic
         internal fun headerFields(headers: Headers): Map<String, String> =
             headers.names().associateWith { headers.values(it).joinToString(", ") }
+
+        /** What a finished download is listed under in the Downloads app. */
+        internal data class CompletedDownload(val title: String, val description: String, val mime: String, val path: String)
+
+        /**
+         * The Downloads-app entry for `addAndroidDownloads` without the DownloadManager,
+         * or null when the response went to no file. DownloadManager.addCompletedDownload
+         * refuses an empty title, description, MIME type or path with
+         * IllegalArgumentException; title and description defaulted to "", so the call
+         * threw for every config that left them out and ended the app (#390). They
+         * default to the file's name now.
+         */
+        @JvmStatic
+        internal fun completedDownload(title: String?, description: String?, mime: String?, path: String?): CompletedDownload? {
+            if (path.isNullOrEmpty()) return null
+            val name = File(path).name
+            val shownTitle = if (title.isNullOrEmpty()) name else title
+            return CompletedDownload(
+                shownTitle,
+                if (description.isNullOrEmpty()) shownTitle else description,
+                if (mime.isNullOrEmpty()) "text/plain" else mime,
+                path,
+            )
+        }
 
         /**
          * Whether OkHttp may send a request again after a connection failure, when the
