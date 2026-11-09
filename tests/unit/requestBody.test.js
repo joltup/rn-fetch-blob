@@ -142,3 +142,35 @@ test('a body without a Content-Type gets one: text/plain for text, octet-stream 
     call = await sent('GET', {}, undefined);
     assert.deepEqual(call.headers, {});
 });
+
+// Pickers and camera libraries hand out file:// URLs, and wrap() put one behind
+// the file prefix as it was. Native read the rest as a path: iOS's multipart
+// builder looked for a file named "file:///..." and failed the request, Windows
+// sent an empty part, and Android kept %20 in the name (#411, #256).
+test('a file given as a file:// URL is sent as its decoded path', async () => {
+    const url = 'file:///docs/my%20scan%20%232.pdf';
+    const path = '/docs/my scan #2.pdf';
+
+    const form = await sent('POST', {}, [
+        {name: 'wrapped', filename: 'scan.pdf', data: `ReactNativeBlobUtil-file://${url}`},
+        {name: 'explicit', data: {file: url}},
+        {name: 'host', filename: 'h.pdf', data: 'ReactNativeBlobUtil-file://file://localhost/docs/h.pdf'},
+    ]);
+    assert.deepEqual(form.form.map((f) => [f.name, f.kind, f.data, f.filename]), [
+        ['wrapped', 'file', `ReactNativeBlobUtil-file://${path}`, 'scan.pdf'],
+        ['explicit', 'file', `ReactNativeBlobUtil-file://${path}`, 'my scan #2.pdf'],
+        ['host', 'file', 'ReactNativeBlobUtil-file:///docs/h.pdf', 'h.pdf'],
+    ]);
+
+    for (const body of [`ReactNativeBlobUtil-file://${url}`, {file: url}]) {
+        const single = await sent('POST', {}, body);
+        assert.equal(single.body, `ReactNativeBlobUtil-file://${path}`);
+        assert.equal(single.options.bodyType, 'file');
+    }
+
+    // A plain path is left alone, a % in it included, and so is a malformed escape.
+    const plain = await sent('POST', {}, {file: '/docs/100%.txt'});
+    assert.equal(plain.body, 'ReactNativeBlobUtil-file:///docs/100%.txt');
+    const malformed = await sent('POST', {}, {file: 'file:///docs/100%.txt'});
+    assert.equal(malformed.body, 'ReactNativeBlobUtil-file:///docs/100%.txt');
+});

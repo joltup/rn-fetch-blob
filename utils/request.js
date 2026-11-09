@@ -122,9 +122,32 @@ export function nativeOptions(options: Object): Object {
  */
 function fileReference(path: string): string {
     if (path.startsWith(FILE_PREFIX) || path.startsWith(CONTENT_PREFIX)) {
-        return path;
+        return withFilePath(path);
     }
-    return (path.startsWith('content://') ? CONTENT_PREFIX : FILE_PREFIX) + path;
+    return path.startsWith('content://') ? CONTENT_PREFIX + path : withFilePath(FILE_PREFIX + path);
+}
+
+/**
+ * A file reference whose path is a file:// URL, as pickers and camera
+ * libraries hand them out, with the URL replaced by its decoded path. Native
+ * read whatever followed the prefix as a path: iOS's multipart builder looked
+ * for a file named "file:///..." and failed the request, Windows sent an empty
+ * part, and Android kept %20 in the name (#411, #256). A malformed escape
+ * leaves the path as it is.
+ * @param  {string} reference A string that starts with the file prefix.
+ * @return {string}
+ */
+function withFilePath(reference: string): string {
+    const rest = reference.startsWith(FILE_PREFIX) ? reference.slice(FILE_PREFIX.length) : null;
+    if (rest == null || !/^file:\/\//i.test(rest)) {
+        return reference;
+    }
+    const path = rest.replace(/^file:\/\/(localhost)?/i, '');
+    try {
+        return FILE_PREFIX + decodeURIComponent(path);
+    } catch {
+        return FILE_PREFIX + path;
+    }
 }
 
 /**
@@ -204,7 +227,7 @@ function formField(field: Object): Object {
     }
     const wrapped = field.data.startsWith(FILE_PREFIX) || field.data.startsWith(CONTENT_PREFIX);
     const kind = field.filename == null ? 'text' : wrapped ? 'file' : 'base64';
-    return {...field, kind};
+    return kind === 'file' ? {...field, data: withFilePath(field.data), kind} : {...field, kind};
 }
 
 /**
@@ -237,7 +260,7 @@ export function prepareBody(method: string, headers: ?Object, body: any): Object
     else if (typeof body === 'string') {
         const key = headers ? headerKey(headers, 'content-type') : null;
         kind = kindOfString(body, key ? String(headers[key]) : '');
-        data = body;
+        data = kind === 'file' ? withFilePath(body) : body;
     }
     else {
         return {...none, error: 'Unsupported body: pass a string, {text}, {base64}, {file}, bytes or a multipart array'};
