@@ -88,9 +88,10 @@ function fetchWithOptions(options: ReactNativeBlobUtilConfig, method: string, ur
     let respInfo = {'uninit': true};
 
     // # 241 normalize null or undefined headers, in case nil or null string
-    // pass to native context
+    // pass to native context. Only those: any other value that is not a string
+    // (0 and false included) is refused by invalidHeader below.
     headers = headers && Object.keys(headers).reduce((result, key) => {
-        result[key] = headers[key] || '';
+        result[key] = headers[key] ?? '';
         return result;
     }, {});
 

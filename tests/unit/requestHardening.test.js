@@ -60,6 +60,10 @@ test('a header value that is not a string rejects EINVAL without reaching native
         {'X-Test': ['a', 'b']},
         {'X-Test': 42},
         {'X-Test': true},
+        // Falsy ones too: fetch used to replace any falsy value with "", so
+        // these went out as an empty header instead of being refused.
+        {'X-Test': 0},
+        {'X-Test': false},
     ]) {
         calls.length = 0;
         const err = await rejection(fetch('GET', 'https://example.com', headers));
@@ -68,6 +72,17 @@ test('a header value that is not a string rejects EINVAL without reaching native
         assert.equal(calls.length, 0);
     }
     assert.equal(rn.listenerCount('ReactNativeBlobUtilState'), 0);
+});
+
+// #241: a null or undefined value is sent as an empty header, as documented,
+// rather than handed to native as nil.
+test('a null or undefined header value is sent as an empty string', async () => {
+    calls.length = 0;
+    await fetch('GET', 'https://example.com', {'X-Null': null, 'X-Undefined': undefined, 'X-Empty': ''});
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].headers['X-Null'], '');
+    assert.equal(calls[0].headers['X-Undefined'], '');
+    assert.equal(calls[0].headers['X-Empty'], '');
 });
 
 // Android and iOS paste name and filename into the part's Content-Disposition
