@@ -652,11 +652,14 @@ internal class ReactNativeBlobUtilFS(private val mCtx: ReactApplicationContext) 
                     promise.reject("ENOTDIR", "Not a directory '$path'")
                     return
                 }
+                // list() is null for a directory that cannot be read, too (#425).
                 val files = File(path).list()
+                if (files == null) {
+                    promise.reject("EACCES", "Cannot read directory '$path'")
+                    return
+                }
                 val arg = Arguments.createArray()
-                // File => list(): "If this abstract pathname does not denote a directory, then this method returns null."
-                // We excluded that possibility above.
-                for (i in files!!) {
+                for (i in files) {
                     arg.pushString(i)
                 }
                 promise.resolve(arg)
@@ -729,32 +732,45 @@ internal class ReactNativeBlobUtilFS(private val mCtx: ReactApplicationContext) 
             val path = ReactNativeBlobUtilUtils.normalizePath(rawPath)
 
             object : AsyncTask<String?, Int, Int>() {
-                override fun doInBackground(vararg args: String?): Int {
-                    val res = Arguments.createArray()
-                    val target = args[0]
-                    if (target == null) {
-                        promise.reject("EINVAL", "the path specified for lstat is either `null` or `undefined`.")
-                        return 0
-                    }
-                    val src = File(target)
-                    if (!src.exists()) {
-                        promise.reject("ENOENT", "failed to lstat path `$target` because it does not exist or it is not a folder")
-                        return 0
-                    }
-                    if (src.isDirectory) {
-                        val files = src.list()
-                        // File => list(): "If this abstract pathname does not denote a directory, then this method returns null."
-                        // We excluded that possibility above.
-                        for (p in files!!) {
-                            res.pushMap(statFile(src.path + "/" + p))
-                        }
-                    } else {
-                        res.pushMap(statFile(src.absolutePath))
-                    }
-                    promise.resolve(res)
-                    return 0
+                override fun doInBackground(vararg args: String?): Int = try {
+                    lstatIn(args[0], promise)
+                } catch (e: Exception) {
+                    // Thrown here, on AsyncTask's thread, an exception ended the app.
+                    promise.reject("EUNSPECIFIED", e.localizedMessage)
+                    0
                 }
             }.execute(path)
+        }
+
+        /** lstat's work, off AsyncTask so a test can reach it. */
+        internal fun lstatIn(target: String?, promise: Promise): Int {
+            if (target == null) {
+                promise.reject("EINVAL", "the path specified for lstat is either `null` or `undefined`.")
+                return 0
+            }
+            val src = File(target)
+            if (!src.exists()) {
+                promise.reject("ENOENT", "failed to lstat path `$target` because it does not exist or it is not a folder")
+                return 0
+            }
+            val paths = if (src.isDirectory) {
+                // list() is null for a directory that cannot be read, too; the old
+                // `files!!` threw on AsyncTask's thread and ended the app (#425).
+                val files = src.list()
+                if (files == null) {
+                    promise.reject("EACCES", "failed to lstat path `$target` because the folder cannot be read")
+                    return 0
+                }
+                files.map { src.path + "/" + it }
+            } else {
+                listOf(src.absolutePath)
+            }
+            val res = Arguments.createArray()
+            for (p in paths) {
+                res.pushMap(statFile(p))
+            }
+            promise.resolve(res)
+            return 0
         }
 
         /**

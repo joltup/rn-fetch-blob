@@ -178,6 +178,7 @@ Where the platforms disagreed, 1.0 picks one behaviour:
 | utf8 `readStream` with a character split across chunks | ok (Android), error (iOS) | ok |
 | `fs.createFile(path, src, 'uri')` with a missing source | ENOENT (Android), empty file (iOS) | ENOENT |
 | `fs.createFile(path, data, 'base64')` with data that is not base64 (a `data:` URL, say) | EINVAL (Android, Windows), an empty file (iOS) | EINVAL (1.1.1) |
+| `fs.lstat` / `fs.ls` on a folder that cannot be read (Android) | `lstat` ended the app; `ls` rejected with a NullPointerException's message | rejects `EACCES` (1.1.1) |
 | `fs.hash` / `fs.slice` on a missing file | EUNSPECIFIED (Android), ENOENT (iOS) | ENOENT |
 | `fs.mkdir` on an existing directory | EEXIST (Android, iOS), resolved (Windows) | EEXIST |
 | `fs.ls` on a missing path | ENOENT (Android, iOS), ENOTDIR (Windows) | ENOENT |

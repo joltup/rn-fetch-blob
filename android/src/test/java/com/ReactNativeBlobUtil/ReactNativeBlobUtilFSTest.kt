@@ -3,6 +3,7 @@ package com.ReactNativeBlobUtil
 import com.facebook.react.bridge.JavaOnlyArray
 import com.facebook.react.bridge.Promise
 import org.junit.After
+import org.junit.Assume
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -471,5 +472,28 @@ class ReactNativeBlobUtilFSTest {
         assertTrue(ReactNativeBlobUtilFS.isAsset("bundle-assets://image.png"))
         assertFalse(ReactNativeBlobUtilFS.isAsset("/data/bundle-assets://image.png"))
         assertFalse(ReactNativeBlobUtilFS.isAsset(null))
+    }
+
+    // File.list() is null for a directory that cannot be read, not only for a file.
+    // lstat's `files!!` threw on AsyncTask's thread and ended the app; ls rejected
+    // with the NullPointerException's message (#425). Both reject EACCES now.
+    // Needs a host where a directory can be made unreadable: not Windows, not root.
+    @Test
+    fun `ls and lstat reject EACCES for a folder that cannot be read`() {
+        val dir = tmp.newFolder("locked")
+        File(dir, "inside.txt").writeText("x")
+        try {
+            Assume.assumeTrue("cannot make a folder unreadable here", dir.setReadable(false) && dir.list() == null)
+
+            val ls = RecordingPromise()
+            ReactNativeBlobUtilFS.ls(dir.plain, ls.promise)
+            assertEquals("EACCES", ls.rejected().first)
+
+            val lstat = RecordingPromise()
+            ReactNativeBlobUtilFS.lstatIn(dir.path, lstat.promise)
+            assertEquals("EACCES", lstat.rejected().first)
+        } finally {
+            dir.setReadable(true)
+        }
     }
 }
