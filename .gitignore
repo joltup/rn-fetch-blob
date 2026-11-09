@@ -71,3 +71,7 @@ examples/ReactNativeBlobUtil/windows/ReactNativeBlobUtilWin/test_ca.pem
 # Local agent settings and notes: personal, never committed or published
 .claude/
 CLAUDE.local.md
+
+# npm is the package manager here; package-lock.json is the only lockfile.
+yarn.lock
+pnpm-lock.yaml

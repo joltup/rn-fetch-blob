@@ -18,6 +18,10 @@ open an issue first so the approach is agreed before you spend time on it.
 
 The library supports the New Architecture only.
 
+The repository uses npm: install with `npm install` (CI runs `npm ci`), and
+`package-lock.json` is the only lockfile. Please don't commit a `yarn.lock` or
+`pnpm-lock.yaml`.
+
 ## Before you open a pull request
 
 1. Run the JavaScript checks:
