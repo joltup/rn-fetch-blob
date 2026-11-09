@@ -12,6 +12,7 @@
 //
 
 #import "ReactNativeBlobUtil.h"
+#import <React/RCTUtils.h>
 
 // The seam, not the Swift module. Under SwiftPM this file compiles in its own
 // target and cannot see the Swift core's generated -Swift.h, so it names a
@@ -55,8 +56,12 @@ RCT_EXPORT_MODULE();
         [_core setWarningHandler:^(NSString *message) {
             RCTLogWarn(@"%@", message);
         }];
+        // RCTPresentedViewController() finds the key window through the connected scenes, so it
+        // works with the UIScene life cycle (React Native 0.88's template, required to launch when
+        // built with the iOS 27 SDK). That template's AppDelegate has no `window`, and sending it
+        // one threw "-[AppDelegate window]: unrecognized selector".
         _core.presentingViewController = ^UIViewController * _Nullable {
-            return [[[[UIApplication sharedApplication] delegate] window] rootViewController];
+            return RCTPresentedViewController();
         };
         if (commonTaskQueue == nil)
             commonTaskQueue = dispatch_queue_create("ReactNativeBlobUtil.queue", DISPATCH_QUEUE_SERIAL);
