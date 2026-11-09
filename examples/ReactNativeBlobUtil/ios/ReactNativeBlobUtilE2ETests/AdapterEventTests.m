@@ -1,5 +1,6 @@
 //
 //  The adapter's event plumbing: what it says it sends, and in what shape.
+//  And the view controller it hands the core to present the document menus from.
 //
 //  ReactNativeBlobUtil.h imports React, so it is private to the pod and cannot
 //  be reached through the umbrella module the Swift tests import. The class is
@@ -83,6 +84,92 @@ static NSMutableArray *RecordedBodies = nil;
     @finally {
         method_setImplementation(method, original);
         RecordedBodies = nil;
+    }
+}
+
+@end
+
+#pragma mark - The controller the document menus present from
+
+/// An app delegate without a `window`, as in React Native 0.88's template, which
+/// keeps the window on a scene delegate.
+@interface RNBUWindowlessAppDelegate : UIResponder <UIApplicationDelegate>
+@end
+
+@implementation RNBUWindowlessAppDelegate
+@end
+
+@interface AdapterPresentingTests : XCTestCase
+@property (nonatomic, strong) id adapter;
+@end
+
+@implementation AdapterPresentingTests
+
+- (UIViewController * _Nullable (^)(void))provider {
+    Class cls = NSClassFromString(@"ReactNativeBlobUtil");
+    XCTAssertNotNil(cls, @"the module class is not linked into the test bundle");
+    self.adapter = [[cls alloc] init];
+    id<ReactNativeBlobUtilModuleCoreBridge> core = [self.adapter valueForKey:@"core"];
+    XCTAssertNotNil(core.presentingViewController, @"the adapter gives the core no provider");
+    return core.presentingViewController;
+}
+
+/// The provider sent `window` to the app delegate, so with the UIScene life
+/// cycle the first menu ended the app: "-[AppDelegate window]: unrecognized
+/// selector sent to instance" (#498).
+- (void)testTheProviderDoesNotAskTheAppDelegateForAWindow {
+    UIViewController * _Nullable (^provider)(void) = [self provider];
+    UIApplication *app = UIApplication.sharedApplication;
+    id<UIApplicationDelegate> original = app.delegate;
+    RNBUWindowlessAppDelegate *windowless = [RNBUWindowlessAppDelegate new];
+    app.delegate = windowless;
+    @try {
+        XCTAssertNoThrow(provider());
+    }
+    @finally {
+        app.delegate = original;
+    }
+}
+
+/// The menus present from the controller on top. The provider returned the
+/// window's root view controller, and UIKit does not present from a controller
+/// that is already presenting one, so a menu opened over a modal screen did
+/// nothing (#311).
+- (void)testTheProviderReturnsTheControllerOnTop {
+    UIWindow *key = nil;
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (![scene isKindOfClass:UIWindowScene.class]) {
+            continue;
+        }
+        for (UIWindow *window in ((UIWindowScene *)scene).windows) {
+            if (window.isKeyWindow) {
+                key = window;
+            }
+        }
+    }
+    if (key.rootViewController == nil) {
+        XCTSkip(@"the test host has no key window with a root view controller");
+    }
+    UIViewController *top = key.rootViewController;
+    while (top.presentedViewController != nil) {
+        top = top.presentedViewController;
+    }
+
+    UIViewController *modal = [UIViewController new];
+    XCTestExpectation *shown = [self expectationWithDescription:@"modal presented"];
+    [top presentViewController:modal animated:NO completion:^{
+        [shown fulfill];
+    }];
+    [self waitForExpectations:@[shown] timeout:5];
+    @try {
+        XCTAssertEqual([self provider](), modal);
+    }
+    @finally {
+        XCTestExpectation *gone = [self expectationWithDescription:@"modal dismissed"];
+        [modal dismissViewControllerAnimated:NO completion:^{
+            [gone fulfill];
+        }];
+        [self waitForExpectations:@[gone] timeout:5];
     }
 }
 
