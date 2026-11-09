@@ -14,15 +14,21 @@ export type BodyKind = 'text' | 'base64' | 'file';
 const CONTROL = /[\r\n\0]/;
 
 /**
- * Why a set of headers cannot be sent, or null. A CR, LF or NUL in a name or
- * value would start another header on the wire (Windows adds headers without
- * validating them), so it is refused rather than passed on.
+ * Why a set of headers cannot be sent, or null. Native reads every value as a
+ * string, so a value of another type - an object a caller passed by mistake, a
+ * number - could not cross the bridge and only crashed there instead of
+ * rejecting in JS. A CR, LF or NUL in a name or value would start another
+ * header on the wire (Windows adds headers without validating them), so it is
+ * refused rather than passed on.
  * @param  {?Object} headers
  * @return {?string}
  */
 export function invalidHeader(headers: ?Object): ?string {
     for (const key of Object.keys(headers || {})) {
-        if (CONTROL.test(key) || CONTROL.test(String(headers[key]))) {
+        if (typeof headers[key] !== 'string') {
+            return `Header "${key.replace(/[\r\n\0]/g, ' ')}" must be a string`;
+        }
+        if (CONTROL.test(key) || CONTROL.test(headers[key])) {
             return `Header "${key.replace(/[\r\n\0]/g, ' ')}" contains a line break or NUL`;
         }
     }

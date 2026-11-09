@@ -50,6 +50,26 @@ test('a header name or value with CR, LF or NUL rejects EINVAL without reaching 
     assert.equal(rn.listenerCount('ReactNativeBlobUtilState'), 0);
 });
 
+// Native reads every header value as a string, so a value of another type -
+// an object a caller passed by mistake, a number, an array - could not cross
+// the bridge and only crashed there: on Android with a ReadableNativeMap cast
+// error, on iOS with no visible error at all. Refused before reaching native.
+test('a header value that is not a string rejects EINVAL without reaching native', async () => {
+    for (const headers of [
+        {'X-Test': {value: 'a'}},
+        {'X-Test': ['a', 'b']},
+        {'X-Test': 42},
+        {'X-Test': true},
+    ]) {
+        calls.length = 0;
+        const err = await rejection(fetch('GET', 'https://example.com', headers));
+        assert.equal(err.code, 'EINVAL', String(headers['X-Test']));
+        assert.match(err.message, /X-Test/);
+        assert.equal(calls.length, 0);
+    }
+    assert.equal(rn.listenerCount('ReactNativeBlobUtilState'), 0);
+});
+
 // Android and iOS paste name and filename into the part's Content-Disposition
 // between quotes, so a quote or a line break in a shared file's name rewrote the
 // part header. Escaped as browsers do (WHATWG multipart/form-data).
