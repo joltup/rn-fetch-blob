@@ -1,3 +1,4 @@
+// @flow
 import {FetchBlobResponse} from './class/ReactNativeBlobUtilBlobResponse';
 import CanceledFetchError from './class/ReactNativeBlobUtilCanceledFetchError';
 import fs from './fs';

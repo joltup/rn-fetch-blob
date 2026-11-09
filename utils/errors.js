@@ -1,3 +1,4 @@
+// @flow
 /**
  * An Error with a `code` property, the shape every rejection of this
  * library carries: POSIX-style codes such as EINVAL, ENOENT, ENOTSUP.

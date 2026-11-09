@@ -1,3 +1,4 @@
+// @flow
 // The Flow types index.js exports for Flow-typed apps. index.d.ts is what
 // TypeScript reads; tests/unit/flowTypes.test.js checks that the types the two
 // share have the same shape, so a change to one has to be made in both.

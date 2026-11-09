@@ -1,3 +1,4 @@
+// @flow
 // The names from before 1.0. Each warns once and forwards to open.* or media.*.
 // They keep their old scope: Android only, ENOTSUP elsewhere.
 import fs from './fs';

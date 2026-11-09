@@ -1,3 +1,4 @@
+// @flow
 // The names from before 1.0. Each warns once and forwards to media.*, keeping
 // exactly what it resolved before (writeToMediaFile resolved native's "Success").
 import media from './media';

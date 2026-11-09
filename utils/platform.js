@@ -1,3 +1,4 @@
+// @flow
 import {Platform} from 'react-native';
 import {addCode} from './errors';
 

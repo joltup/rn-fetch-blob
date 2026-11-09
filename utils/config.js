@@ -1,3 +1,4 @@
+// @flow
 /**
  * config() options as native reads them. 1.0 groups the platform-only options
  * (`android: {downloadManager, wifiOnly, targetHostIp}`, `ios: {backgroundTask}`)

@@ -1,3 +1,4 @@
+// @flow
 const CANCELED_FETCH_ERROR_NAME = 'ReactNativeBlobUtilCanceledFetch';
 
 class CanceledFetchError extends Error {

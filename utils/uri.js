@@ -1,3 +1,4 @@
+// @flow
 // The prefixes wrap() produces: one for a file path, one for a content URI.
 const WRAPPED = /^ReactNativeBlobUtil-(file|content):\/\//;
 

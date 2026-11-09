@@ -1,3 +1,4 @@
+// @flow
 /* eslint-disable no-bitwise, no-extra-parens */
 /**
  * Byte-array conversions for response bodies. Pure functions, no globals:

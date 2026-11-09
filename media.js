@@ -1,3 +1,4 @@
+// @flow
 // The device's shared media library: Android's MediaStore, the Downloads
 // app and the media scanner. Every call rejects with ENOTSUP elsewhere.
 

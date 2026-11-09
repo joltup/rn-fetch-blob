@@ -1,3 +1,4 @@
+// @flow
 /* eslint-disable no-console */
 const warned = new Set();
 

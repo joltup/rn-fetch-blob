@@ -1,3 +1,4 @@
+// @flow
 // The names from before 1.0. Each warns once and forwards to open.* or fs.*.
 // They keep their old scope: iOS only, ENOTSUP elsewhere.
 import {Platform} from 'react-native';

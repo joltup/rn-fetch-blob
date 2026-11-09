@@ -1,3 +1,4 @@
+// @flow
 /**
  * Checks and rewrites a request needs before it reaches native, done here so
  * that Android, iOS and Windows behave the same.

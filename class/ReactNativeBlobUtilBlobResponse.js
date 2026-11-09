@@ -1,3 +1,4 @@
+// @flow
 import base64 from 'base-64';
 import ReactNativeBlobUtilSession from './ReactNativeBlobUtilSession';
 import fs from '../fs';

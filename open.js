@@ -1,3 +1,4 @@
+// @flow
 // Opening files in other apps and picking files: one namespace, whatever the
 // platform does underneath. A call a platform cannot make rejects with ENOTSUP.
 
