@@ -87,6 +87,15 @@ function fetchWithOptions(options: ReactNativeBlobUtilConfig, method: string, ur
     const taskId = getUUID();
     let respInfo = {'uninit': true};
 
+    // A body passed in the headers' place (#334) was copied key by key below:
+    // one header per character, and for a long string more properties than
+    // Hermes allows, which threw from fetch itself.
+    const headersNotAnObject = headers != null && (typeof headers !== 'object' || Array.isArray(headers))
+        ? 'headers must be an object of header names and values' : null;
+    if (headersNotAnObject) {
+        headers = null;
+    }
+
     // # 241 normalize null or undefined headers, in case nil or null string
     // pass to native context. Only those: any other value that is not a string
     // (0 and false included) is refused by invalidHeader below.
@@ -97,7 +106,7 @@ function fetchWithOptions(options: ReactNativeBlobUtilConfig, method: string, ur
 
     // Refused here, before any listener exists, so all platforms agree.
     const prepared = prepareBody(method, headers, body);
-    const invalid = invalidAppendExt(options) || prepared.error || invalidHeader(headers)
+    const invalid = headersNotAnObject || invalidAppendExt(options) || prepared.error || invalidHeader(headers)
         || (Array.isArray(body) ? invalidFormField(body) : null);
     headers = prepared.headers;
     body = Array.isArray(prepared.body) ? escapeForm(prepared.body) : prepared.body;

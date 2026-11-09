@@ -136,3 +136,16 @@ test('an appendExt with a path separator rejects EINVAL without reaching native'
         assert.equal(calls.length, 1, appendExt);
     }
 });
+
+// A body passed in the headers' place (#334) became one header per character,
+// and a long one exceeded Hermes' property limit and threw from fetch itself.
+test('headers that are not an object reject EINVAL without reaching native', async () => {
+    for (const headers of ['aGVsbG8=', ['X-Test', 'a'], 42]) {
+        calls.length = 0;
+        const err = await rejection(fetch('POST', 'https://example.com', headers, 'body'));
+        assert.equal(err.code, 'EINVAL', String(headers));
+        assert.match(err.message, /headers/);
+        assert.equal(calls.length, 0);
+    }
+    assert.equal(rn.listenerCount('ReactNativeBlobUtilState'), 0);
+});
