@@ -245,9 +245,9 @@ change the declaration and the sample in the same commit.
 
 ## Releases
 
-The maintainer publishes from his own machine. The `npm publish` GitHub Action
-still exists but is not used: its npm token is not kept current, so a run of it
-fails. Do not route a release through it. To prepare one:
+The maintainer publishes from his own machine; there is no publishing workflow.
+The old `npm publish` GitHub Action was removed because its npm token was not
+kept current and a run of it failed. To prepare a release:
 
 1. `npm version <x.y.z> --no-git-tag-version` — updates `package.json` and
    `package-lock.json` together.
