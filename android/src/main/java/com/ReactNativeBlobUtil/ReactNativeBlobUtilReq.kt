@@ -820,8 +820,8 @@ class ReactNativeBlobUtilReq(
         // A request that times out fails with ETIMEDOUT and never gets here.
         info.putBoolean("timeout", false)
         val headerMap = Arguments.createMap()
-        for (i in 0 until resp.headers.size) {
-            headerMap.putString(resp.headers.name(i), resp.headers.value(i))
+        for ((name, value) in headerFields(resp.headers)) {
+            headerMap.putString(name, value)
         }
         val redirectList = Arguments.createArray()
         for (r in redirects) {
@@ -1119,6 +1119,16 @@ class ReactNativeBlobUtilReq(
             }
             return builder
         }
+
+        /**
+         * The response headers as JS gets them: one entry per name, with a repeated
+         * field's values joined by ", ", as iOS's allHeaderFields and fetch's
+         * Headers.get do. Each repetition used to replace the one before, so of two
+         * Set-Cookie headers only the last reached JS (#377).
+         */
+        @JvmStatic
+        internal fun headerFields(headers: Headers): Map<String, String> =
+            headers.names().associateWith { headers.values(it).joinToString(", ") }
 
         /**
          * Whether OkHttp may send a request again after a connection failure, when the

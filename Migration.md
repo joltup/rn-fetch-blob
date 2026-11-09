@@ -184,6 +184,7 @@ Where the platforms disagreed, 1.0 picks one behaviour:
 | `lstat` `lastModified` on Windows | seconds | milliseconds, like the other platforms |
 | `android.getContentIntent` when the user cancels | never settled | resolves `null`; a second call while the picker is open rejects `EBUSY` |
 | `android.actionViewIntent` | resolved `true`, then `null` again on resume | settles once; resolves `undefined`, like `open.file` it forwards to |
+| A response header sent more than once (`Set-Cookie`, say) on Android | only the last value reached `res.headers` and `res.info().headers` | every value, joined with `, ` as on iOS (1.1.1) |
 | `respInfo.respType` on Android | `""` for every text response (a broken header check) | `text`, `json` or `blob` by Content-Type, as on iOS |
 | `config({auto: true})` on Android | wrote only a type listed in `binaryContentTypes` to a file (the same broken check) | writes every response that is not `text/*` or `application/json` to a file, as on iOS (1.1.0) |
 | An upload on Android whose source cannot be read (a revoked `content://` URI, a missing asset, a read error mid-way) | sent an empty or cut-off body, and either resolved or failed with "unexpected end of stream" | rejects with the source's own error (`EUNSPECIFIED`) |

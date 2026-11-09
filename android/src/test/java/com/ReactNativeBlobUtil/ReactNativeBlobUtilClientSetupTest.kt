@@ -1,5 +1,6 @@
 package com.ReactNativeBlobUtil
 
+import okhttp3.Headers.Companion.headersOf
 import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -41,5 +42,21 @@ class ReactNativeBlobUtilClientSetupTest {
         assertEquals(0, client.connectTimeoutMillis)
         assertEquals(0, client.readTimeoutMillis)
         assertEquals(7000, client.writeTimeoutMillis)
+    }
+
+    // Each repetition of a header replaced the one before, so of two Set-Cookie
+    // headers only the last reached JS (#377). iOS joins them with ", ".
+    @Test
+    fun `a repeated response header keeps every value, joined as iOS joins them`() {
+        val fields = ReactNativeBlobUtilReq.headerFields(
+            headersOf("Set-Cookie", "a=1", "Content-Type", "text/plain", "Set-Cookie", "b=2"),
+        )
+        assertEquals(mapOf("Content-Type" to "text/plain", "Set-Cookie" to "a=1, b=2"), fields)
+    }
+
+    @Test
+    fun `names that differ only in case are one header`() {
+        val fields = ReactNativeBlobUtilReq.headerFields(headersOf("X-Id", "1", "x-id", "2"))
+        assertEquals(mapOf("X-Id" to "1, 2"), fields)
     }
 }
